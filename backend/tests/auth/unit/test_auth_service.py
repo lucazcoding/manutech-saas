@@ -92,9 +92,8 @@ class TestPasswordHashNeverExposed:
 
         with patch("services.auth.services.auth_service.UserRepository") as MockUserRepo, \
              patch("services.auth.services.auth_service.TokenRepository") as MockTokenRepo, \
-             patch("services.auth.services.auth_service._pwd_context") as mock_ctx:
+             patch("services.auth.services.auth_service._verify_password", return_value=True):
 
-            mock_ctx.verify.return_value = True
             MockUserRepo.return_value.get_by_login = AsyncMock(return_value=user)
             MockTokenRepo.return_value.create = AsyncMock()
 
@@ -118,9 +117,8 @@ class TestInvalidCredentials:
         db = AsyncMock()
 
         with patch("services.auth.services.auth_service.UserRepository") as MockUserRepo, \
-             patch("services.auth.services.auth_service._pwd_context") as mock_ctx:
+             patch("services.auth.services.auth_service._verify_password", return_value=False):
 
-            mock_ctx.verify.return_value = False
             MockUserRepo.return_value.get_by_login = AsyncMock(return_value=user)
 
             client = make_client(rsa_keys, mock_db=db, mock_redis=fake_redis_instance)
@@ -200,9 +198,8 @@ class TestInvalidCredentials:
 
         with patch("services.auth.services.auth_service.UserRepository") as MockUserRepo, \
              patch("services.auth.services.auth_service.TokenRepository") as MockTokenRepo, \
-             patch("services.auth.services.auth_service._pwd_context") as mock_ctx:
+             patch("services.auth.services.auth_service._verify_password", return_value=True):
 
-            mock_ctx.verify.return_value = True
             MockUserRepo.return_value.get_by_login = AsyncMock(return_value=user)
             MockTokenRepo.return_value.create = AsyncMock()
 
@@ -282,7 +279,7 @@ class TestRBACUsers:
 
         assert r.status_code == 200
 
-    def test_no_token_returns_401(self, rsa_keys):
+    def test_no_token_returns_403(self, rsa_keys):
         app = create_app()
         settings = make_auth_settings(rsa_keys)
         app.dependency_overrides[get_auth_settings] = lambda: settings
@@ -290,7 +287,7 @@ class TestRBACUsers:
         app.dependency_overrides[get_shared_settings] = lambda: settings
         client = TestClient(app, raise_server_exceptions=False)
         r = client.get("/api/v1/users")
-        assert r.status_code == 401
+        assert r.status_code == 403
 
     def test_technician_cannot_create_user(self, rsa_keys, technician_claims):
         db = AsyncMock()

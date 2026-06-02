@@ -1,7 +1,7 @@
 """Fixtures para testes E2E do Asset Service."""
 
 import pytest_asyncio
-from httpx2 import ASGITransport, AsyncClient
+from httpx import ASGITransport, AsyncClient
 from sqlalchemy import text
 
 from services.asset.main import create_app

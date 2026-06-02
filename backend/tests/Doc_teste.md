@@ -2144,3 +2144,63 @@ Use esta tabela como referência rápida ao testar controle de acesso.
 ---
 
 *Manual gerado para o MANUTECH MVP v2.0.0 — Todos os exemplos de tokens e IDs são ilustrativos.*
+## 14. Resumo Visual do Fluxo de Testes
+
+### Visão Geral
+
+```mermaid
+flowchart TB
+    A[Iniciar Postman] --> B{Login}
+    B -->|Sucesso| C[Salvar Tokens]
+    B -->|Falha| D[Erro de Autenticação]
+    C --> E[Executar Fluxos de Teste]
+    E --> F[Auth Endpoints]
+    E --> G[Asset Endpoints]
+    E --> H[Order Endpoints]
+    E --> I[Inventory Endpoints]
+    E --> J[Finance Endpoints]
+    E --> K[Notification Endpoints]
+    F --> L[Login / Refresh / Logout / Me / Usuários]
+    G --> M[Assets CRUD]
+    H --> N[Orders CRUD + Status + Assign]
+    I --> O[Materials & Movements]
+    J --> P[Costs & Budgets]
+    K --> Q[Notifications CRUD & WS]
+    L --> R[Validar Respostas]
+    M --> R
+    N --> R
+    O --> R
+    P --> R
+    Q --> R
+    R --> S[Validar Erros Negativos]
+    S --> T[Fim]
+``` 
+
+### Quick Reference
+
+| Serviço | Operação | Rota | Método | Role(s) Permitidos | Código esperado |
+|---|---|---|---|---|---|
+| Auth | Login | `/auth/login` | POST | Todos | 200 / 401 |
+| Auth | Refresh | `/auth/refresh` | POST | Todos | 200 / 401 |
+| Auth | Logout | `/auth/logout` | POST | Qualquer role autenticada | 204 |
+| Asset | Listar | `/assets` | GET | Todos | 200 |
+| Asset | Criar | `/assets` | POST | admin, supervisor | 201 / 403 |
+| Order | Criar OS | `/orders` | POST | supervisor, attendant | 201 / 403 |
+| Order | Atribuir técnico | `/orders/{id}/assign` | PATCH | supervisor | 200 / 403 |
+| Order | Alterar status | `/orders/{id}/status` | PATCH | supervisor, technician | 200 / 400 |
+| Inventory | Criar material | `/materials` | POST | admin, supervisor | 201 / 403 |
+| Finance | Registrar custo | `/costs` | POST | supervisor, technician | 201 / 403 |
+| Notification | Listar | `/notifications` | GET | Todos | 200 |
+| Notification | WebSocket | `ws://.../notifications` | WS | Todos | conexão OK |
+
+> **Dica:** Utilize os *Scripts de Teste* nas abas **Tests** do Postman para armazenar tokens e validar automaticamente os campos `code` e `detail` nas respostas de erro.
+
+### Próximos Passos
+
+1. **Executar os Fluxos End‑to‑End** listados na seção [10. Fluxos Completos de Teste](#10-fluxos-completos-de-teste-cenários-end-to-end).  
+2. **Validar Mensagens de Notificação via WebSocket** conforme a seção [9.6 WebSocket — Notificações em Tempo Real](#9-6-websocket-notificações-em-tempo-real).  
+3. **Gerar Relatórios** usando as rotas `/reports/financial` e `/stock/report` para confirmar métricas de negócio.
+
+--- 
+
+*Este resumo foi adicionado para facilitar a navegação e a compreensão rápida do fluxo de testes em todo o sistema.* 

@@ -171,7 +171,9 @@ class TestStockReport:
         r = await inv_client_admin.get("/api/v1/stock/report")
         assert r.status_code == 200
         body = r.json()
-        assert "items" in body
+        assert isinstance(body, list)
+        assert len(body) >= 1
+        assert "is_low_stock" in body[0]
 
     async def test_supervisor_can_get_stock_report_200(self, inv_client_supervisor, seeded_material):
         r = await inv_client_supervisor.get("/api/v1/stock/report")

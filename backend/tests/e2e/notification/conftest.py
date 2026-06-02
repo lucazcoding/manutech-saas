@@ -8,7 +8,7 @@ from unittest.mock import patch
 import pytest
 import pytest_asyncio
 from sqlalchemy import text
-from httpx2 import ASGITransport, AsyncClient
+from httpx import ASGITransport, AsyncClient
 
 from shared.shared.config import SharedSettings, get_shared_settings
 from shared.shared.db.session import get_db

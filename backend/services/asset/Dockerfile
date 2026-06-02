@@ -10,7 +10,7 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 COPY shared/ ./shared/
-RUN pip install --no-cache-dir -e ./shared
+ENV PYTHONPATH=/app
 
 COPY services/asset/ ./services/asset/
 

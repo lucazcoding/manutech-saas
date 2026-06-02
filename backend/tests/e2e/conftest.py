@@ -19,14 +19,31 @@ import pytest
 import pytest_asyncio
 import redis.asyncio as aioredis
 from pydantic_settings import BaseSettings, SettingsConfigDict
+from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 
+_ROOT = Path(__file__).parent.parent.parent
 
-# ── Resolução das configurações a partir do .env raiz ────────────────────────
+
+# ── Resolução das configurações ───────────────────────────────────────────────
+# Prioridade (maior para menor):
+#   1. Variáveis de ambiente do shell (TEST_DATABASE_URL / TEST_REDIS_URL)
+#   2. Arquivo .env.test.docker  ← usado quando o stack Docker está local
+#   3. Arquivo .env raiz         ← fallback padrão
+# ─────────────────────────────────────────────────────────────────────────────
+
+_TEST_ENV_FILE = _ROOT / ".env.test.docker"
+_MAIN_ENV_FILE = _ROOT / ".env"
+
+# pydantic-settings lê o último arquivo da lista com maior prioridade
+_env_files = [str(_MAIN_ENV_FILE)]
+if _TEST_ENV_FILE.exists():
+    _env_files.append(str(_TEST_ENV_FILE))
+
 
 class _EnvSettings(BaseSettings):
     model_config = SettingsConfigDict(
-        env_file=str(Path(__file__).parent.parent.parent / ".env"),
+        env_file=_env_files,
         extra="ignore",
     )
     database_url: str = "postgresql+asyncpg://postgres:postgres@localhost:5432/manutech_test"
@@ -35,6 +52,7 @@ class _EnvSettings(BaseSettings):
 
 def _load_env() -> _EnvSettings:
     settings = _EnvSettings()
+    # Variáveis explícitas no shell ainda têm prioridade máxima
     if explicit_db := os.getenv("TEST_DATABASE_URL"):
         settings.database_url = explicit_db
     if explicit_redis := os.getenv("TEST_REDIS_URL"):
@@ -83,6 +101,39 @@ async def db_session():
                 await trans.rollback()
     finally:
         await engine.dispose()
+
+
+@pytest_asyncio.fixture(autouse=True)
+async def seed_base_users(db_session):
+    """
+    Semeia os usuários base correspondentes aos tokens de teste.
+    Evita violações de chave estrangeira nas tabelas audit_logs ou RLS.
+    """
+    dummy_hash = "$2b$04$eImiTXuWV5jvhgh2GP5Ur.8VHgQ4.P4e3X5Y0F.7P3q3X3X3X3X3X"
+    await db_session.execute(
+        text(
+            """
+            INSERT INTO users (id, login, name, email, password_hash, role, status)
+            VALUES
+                (1, 'admin.test', 'Admin Test', 'admin.test@test.com', :pwd, 'admin', 'active'),
+                (2, 'supervisor.test', 'Supervisor Test', 'supervisor.test@test.com', :pwd, 'supervisor', 'active'),
+                (3, 'technician.test', 'Technician Test', 'technician.test@test.com', :pwd, 'technician', 'active'),
+                (4, 'attendant.test', 'Attendant Test', 'attendant.test@test.com', :pwd, 'attendant', 'active')
+            ON CONFLICT (id) DO UPDATE SET
+                login = EXCLUDED.login,
+                name = EXCLUDED.name,
+                email = EXCLUDED.email,
+                role = EXCLUDED.role,
+                status = EXCLUDED.status
+            """
+        ),
+        {"pwd": dummy_hash}
+    )
+    # Sincroniza a sequence do id de users para evitar erros em inserts subsequentes sem ID
+    await db_session.execute(
+        text("SELECT setval('users_id_seq', COALESCE((SELECT MAX(id) FROM users), 1))")
+    )
+    await db_session.commit()
 
 
 @pytest_asyncio.fixture

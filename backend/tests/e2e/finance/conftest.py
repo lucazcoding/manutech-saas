@@ -1,7 +1,7 @@
 """Fixtures para testes E2E do Finance Service."""
 
 import pytest_asyncio
-from httpx2 import ASGITransport, AsyncClient
+from httpx import ASGITransport, AsyncClient
 from sqlalchemy import text
 
 from services.finance.main import create_app

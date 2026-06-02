@@ -114,9 +114,9 @@ class TestGetMe:
         assert "role" in body
         assert "password_hash" not in body
 
-    async def test_get_me_without_token_returns_401(self, auth_client):
+    async def test_get_me_without_token_returns_403(self, auth_client):
         r = await auth_client.get("/api/v1/auth/me")
-        assert r.status_code == 401
+        assert r.status_code == 403
 
 
 class TestUserManagement:

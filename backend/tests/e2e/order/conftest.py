@@ -1,8 +1,6 @@
-"""Fixtures para testes E2E do Order Service."""
-
+import bcrypt as _bcrypt
 import pytest_asyncio
-from httpx2 import ASGITransport, AsyncClient
-from passlib.context import CryptContext
+from httpx import ASGITransport, AsyncClient
 from sqlalchemy import text
 
 from services.order.dependencies import get_storage
@@ -12,7 +10,6 @@ from shared.shared.db.session import get_db
 from shared.shared.redis.client import get_redis
 from tests.e2e.conftest import TEST_DATABASE_URL, make_get_db_override
 
-_test_pwd = CryptContext(schemes=["bcrypt"], deprecated="auto", bcrypt__rounds=4)
 
 
 class _MockStorage:
@@ -88,7 +85,7 @@ async def seeded_order(db_session):
 @pytest_asyncio.fixture
 async def seeded_technician_user(db_session):
     """Usuário com role technician (user_id=3 nos tokens de teste)."""
-    pwd_hash = _test_pwd.hash("senha123")
+    pwd_hash = _bcrypt.hashpw("senha123".encode(), _bcrypt.gensalt(rounds=4)).decode()
     result = await db_session.execute(
         text(
             "INSERT INTO users (id, name, login, email, password_hash, role, status) "

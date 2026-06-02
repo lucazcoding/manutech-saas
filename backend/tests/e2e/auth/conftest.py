@@ -2,7 +2,7 @@
 
 import bcrypt as _bcrypt
 import pytest_asyncio
-from httpx2 import ASGITransport, AsyncClient
+from httpx import ASGITransport, AsyncClient
 from sqlalchemy import text
 
 from services.auth.config import AuthSettings, get_auth_settings
@@ -29,7 +29,12 @@ def _make_settings(rsa_keys: dict) -> AuthSettings:
 @pytest_asyncio.fixture
 async def auth_client(db_session, redis_client, rsa_keys):
     # Limpa contadores de rate limit residuais de testes anteriores
-    await redis_client.delete("login_attempts:testclient", "login_attempts:unknown")
+    await redis_client.delete(
+        "login_attempts:testclient",
+        "login_attempts:unknown",
+        "login_attempts:127.0.0.1",
+        "login_attempts:rate.limit.test",
+    )
     app = create_app()
     settings = _make_settings(rsa_keys)
     app.dependency_overrides[get_shared_settings] = lambda: settings
@@ -39,7 +44,12 @@ async def auth_client(db_session, redis_client, rsa_keys):
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
         yield c
     app.dependency_overrides.clear()
-    await redis_client.delete("login_attempts:testclient", "login_attempts:unknown")
+    await redis_client.delete(
+        "login_attempts:testclient",
+        "login_attempts:unknown",
+        "login_attempts:127.0.0.1",
+        "login_attempts:rate.limit.test",
+    )
 
 
 @pytest_asyncio.fixture

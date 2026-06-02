@@ -15,18 +15,19 @@ depends_on = None
 
 def upgrade() -> None:
     # ── ENUMs ────────────────────────────────────────────────────────────────
-    op.execute("""
-        CREATE TYPE user_role      AS ENUM ('admin', 'supervisor', 'technician', 'attendant');
-        CREATE TYPE user_status    AS ENUM ('active', 'inactive');
-        CREATE TYPE order_status   AS ENUM ('open', 'in_progress', 'completed', 'cancelled');
-        CREATE TYPE order_priority AS ENUM ('low', 'medium', 'high', 'urgent');
-        CREATE TYPE movement_type  AS ENUM ('in', 'out');
-        CREATE TYPE cost_type      AS ENUM ('material', 'labor', 'service', 'other');
-        CREATE TYPE audit_action   AS ENUM ('INSERT', 'UPDATE', 'DELETE');
-        CREATE TYPE budget_status  AS ENUM ('draft', 'sent', 'approved', 'rejected', 'expired');
-        CREATE TYPE material_status AS ENUM ('active', 'inactive');
-        CREATE TYPE asset_status   AS ENUM ('active', 'inactive');
-    """)
+    for enum_stmt in [
+        "CREATE TYPE user_role      AS ENUM ('admin', 'supervisor', 'technician', 'attendant')",
+        "CREATE TYPE user_status    AS ENUM ('active', 'inactive')",
+        "CREATE TYPE order_status   AS ENUM ('open', 'in_progress', 'completed', 'cancelled')",
+        "CREATE TYPE order_priority AS ENUM ('low', 'medium', 'high', 'urgent')",
+        "CREATE TYPE movement_type  AS ENUM ('in', 'out')",
+        "CREATE TYPE cost_type      AS ENUM ('material', 'labor', 'service', 'other')",
+        "CREATE TYPE audit_action   AS ENUM ('INSERT', 'UPDATE', 'DELETE')",
+        "CREATE TYPE budget_status  AS ENUM ('draft', 'sent', 'approved', 'rejected', 'expired')",
+        "CREATE TYPE material_status AS ENUM ('active', 'inactive')",
+        "CREATE TYPE asset_status   AS ENUM ('active', 'inactive')"
+    ]:
+        op.execute(enum_stmt)
 
     # ── Tabelas sem FK ────────────────────────────────────────────────────────
     op.execute("""
@@ -219,23 +220,23 @@ def upgrade() -> None:
     """)
 
     # ── Índices ───────────────────────────────────────────────────────────────
-    op.execute("""
-        CREATE INDEX idx_users_login_status      ON users             (login, status);
-        CREATE INDEX idx_orders_status_priority  ON service_orders    (status, priority, start_date);
-        CREATE INDEX idx_orders_asset            ON service_orders    (asset_id);
-        CREATE INDEX idx_movements_mat_date      ON stock_movements   (material_id, created_at);
-        CREATE INDEX idx_assignments_technician  ON order_assignments (technician_id);
-        CREATE INDEX idx_costs_order             ON service_costs     (service_order_id);
-        CREATE INDEX idx_audit_table_record      ON audit_logs        (table_name, record_id);
-        CREATE INDEX idx_attachments_order       ON attachments       (service_order_id);
-        CREATE INDEX idx_budgets_status          ON budgets           (status, valid_until);
-        CREATE INDEX idx_budget_items_budget     ON budget_items      (budget_id);
-        CREATE INDEX idx_notifications_user_read ON notifications     (user_id, read);
-        CREATE INDEX idx_assets_status           ON assets            (status);
-
-        CREATE UNIQUE INDEX uq_refresh_active    ON refresh_tokens    (user_id, token_hash) WHERE revoked = FALSE;
-        CREATE UNIQUE INDEX uq_assignment_active ON order_assignments  (service_order_id, technician_id) WHERE active = TRUE;
-    """)
+    for idx_stmt in [
+        "CREATE INDEX idx_users_login_status      ON users             (login, status)",
+        "CREATE INDEX idx_orders_status_priority  ON service_orders    (status, priority, start_date)",
+        "CREATE INDEX idx_orders_asset            ON service_orders    (asset_id)",
+        "CREATE INDEX idx_movements_mat_date      ON stock_movements   (material_id, created_at)",
+        "CREATE INDEX idx_assignments_technician  ON order_assignments (technician_id)",
+        "CREATE INDEX idx_costs_order             ON service_costs     (service_order_id)",
+        "CREATE INDEX idx_audit_table_record      ON audit_logs        (table_name, record_id)",
+        "CREATE INDEX idx_attachments_order       ON attachments       (service_order_id)",
+        "CREATE INDEX idx_budgets_status          ON budgets           (status, valid_until)",
+        "CREATE INDEX idx_budget_items_budget     ON budget_items      (budget_id)",
+        "CREATE INDEX idx_notifications_user_read ON notifications     (user_id, read)",
+        "CREATE INDEX idx_assets_status           ON assets            (status)",
+        "CREATE UNIQUE INDEX uq_refresh_active    ON refresh_tokens    (user_id, token_hash) WHERE revoked = FALSE",
+        "CREATE UNIQUE INDEX uq_assignment_active ON order_assignments  (service_order_id, technician_id) WHERE active = TRUE"
+    ]:
+        op.execute(idx_stmt)
 
     # ── Triggers ──────────────────────────────────────────────────────────────
     op.execute("""
@@ -255,7 +256,8 @@ def upgrade() -> None:
             RETURN NULL;
         END;
         $$ LANGUAGE plpgsql;
-
+    """)
+    op.execute("""
         CREATE TRIGGER trg_recalc_total_cost
             AFTER INSERT OR UPDATE OR DELETE ON service_costs
             FOR EACH ROW EXECUTE FUNCTION fn_recalc_total_cost();
@@ -291,7 +293,8 @@ def upgrade() -> None:
             RETURN NEW;
         END;
         $$ LANGUAGE plpgsql;
-
+    """)
+    op.execute("""
         CREATE TRIGGER trg_stock_negative_check
             BEFORE INSERT ON stock_movements
             FOR EACH ROW EXECUTE FUNCTION fn_stock_negative_check();
@@ -325,7 +328,8 @@ def upgrade() -> None:
             RETURN NEW;
         END;
         $$ LANGUAGE plpgsql;
-
+    """)
+    op.execute("""
         CREATE TRIGGER trg_audit_orders
             AFTER UPDATE ON service_orders
             FOR EACH ROW EXECUTE FUNCTION fn_audit_orders();
@@ -348,25 +352,27 @@ def upgrade() -> None:
             RETURN NULL;
         END;
         $$ LANGUAGE plpgsql;
-
+    """)
+    op.execute("""
         CREATE TRIGGER trg_recalc_budget_total
             AFTER INSERT OR UPDATE OR DELETE ON budget_items
             FOR EACH ROW EXECUTE FUNCTION fn_recalc_budget_total();
     """)
 
     # ── Row Level Security ────────────────────────────────────────────────────
-    op.execute("""
-        ALTER TABLE users             ENABLE ROW LEVEL SECURITY;
-        ALTER TABLE service_orders    ENABLE ROW LEVEL SECURITY;
-        ALTER TABLE order_assignments ENABLE ROW LEVEL SECURITY;
-        ALTER TABLE service_costs     ENABLE ROW LEVEL SECURITY;
-        ALTER TABLE stock_movements   ENABLE ROW LEVEL SECURITY;
-        ALTER TABLE refresh_tokens    ENABLE ROW LEVEL SECURITY;
-        ALTER TABLE attachments       ENABLE ROW LEVEL SECURITY;
-        ALTER TABLE budgets           ENABLE ROW LEVEL SECURITY;
-        ALTER TABLE notifications     ENABLE ROW LEVEL SECURITY;
-        ALTER TABLE assets            ENABLE ROW LEVEL SECURITY;
-    """)
+    for rls_stmt in [
+        "ALTER TABLE users             ENABLE ROW LEVEL SECURITY",
+        "ALTER TABLE service_orders    ENABLE ROW LEVEL SECURITY",
+        "ALTER TABLE order_assignments ENABLE ROW LEVEL SECURITY",
+        "ALTER TABLE service_costs     ENABLE ROW LEVEL SECURITY",
+        "ALTER TABLE stock_movements   ENABLE ROW LEVEL SECURITY",
+        "ALTER TABLE refresh_tokens    ENABLE ROW LEVEL SECURITY",
+        "ALTER TABLE attachments       ENABLE ROW LEVEL SECURITY",
+        "ALTER TABLE budgets           ENABLE ROW LEVEL SECURITY",
+        "ALTER TABLE notifications     ENABLE ROW LEVEL SECURITY",
+        "ALTER TABLE assets            ENABLE ROW LEVEL SECURITY"
+    ]:
+        op.execute(rls_stmt)
 
     op.execute("""
         CREATE POLICY p_orders_technician_select ON service_orders
@@ -378,15 +384,18 @@ def upgrade() -> None:
                      WHERE technician_id = NULLIF(current_setting('app.user_id', TRUE), '')::BIGINT
                 )
             );
-
+    """)
+    op.execute("""
         CREATE POLICY p_refresh_owner ON refresh_tokens
             FOR ALL
             USING (user_id = NULLIF(current_setting('app.user_id', TRUE), '')::BIGINT);
-
+    """)
+    op.execute("""
         CREATE POLICY p_notifications_owner ON notifications
             FOR ALL
             USING (user_id = NULLIF(current_setting('app.user_id', TRUE), '')::BIGINT);
-
+    """)
+    op.execute("""
         CREATE POLICY p_assets_all_read ON assets
             FOR SELECT
             USING (TRUE);
@@ -394,44 +403,41 @@ def upgrade() -> None:
 
 
 def downgrade() -> None:
-    op.execute("""
-        DROP POLICY IF EXISTS p_assets_all_read        ON assets;
-        DROP POLICY IF EXISTS p_notifications_owner    ON notifications;
-        DROP POLICY IF EXISTS p_refresh_owner          ON refresh_tokens;
-        DROP POLICY IF EXISTS p_orders_technician_select ON service_orders;
-
-        DROP TRIGGER IF EXISTS trg_recalc_budget_total ON budget_items;
-        DROP TRIGGER IF EXISTS trg_audit_orders        ON service_orders;
-        DROP TRIGGER IF EXISTS trg_stock_negative_check ON stock_movements;
-        DROP TRIGGER IF EXISTS trg_recalc_total_cost   ON service_costs;
-
-        DROP FUNCTION IF EXISTS fn_recalc_budget_total();
-        DROP FUNCTION IF EXISTS fn_audit_orders();
-        DROP FUNCTION IF EXISTS fn_stock_negative_check();
-        DROP FUNCTION IF EXISTS fn_recalc_total_cost();
-
-        DROP TABLE IF EXISTS notifications;
-        DROP TABLE IF EXISTS audit_logs;
-        DROP TABLE IF EXISTS budget_items;
-        DROP TABLE IF EXISTS budgets;
-        DROP TABLE IF EXISTS attachments;
-        DROP TABLE IF EXISTS service_costs;
-        DROP TABLE IF EXISTS stock_movements;
-        DROP TABLE IF EXISTS order_assignments;
-        DROP TABLE IF EXISTS service_orders;
-        DROP TABLE IF EXISTS refresh_tokens;
-        DROP TABLE IF EXISTS materials;
-        DROP TABLE IF EXISTS assets;
-        DROP TABLE IF EXISTS users;
-
-        DROP TYPE IF EXISTS asset_status;
-        DROP TYPE IF EXISTS material_status;
-        DROP TYPE IF EXISTS budget_status;
-        DROP TYPE IF EXISTS audit_action;
-        DROP TYPE IF EXISTS cost_type;
-        DROP TYPE IF EXISTS movement_type;
-        DROP TYPE IF EXISTS order_priority;
-        DROP TYPE IF EXISTS order_status;
-        DROP TYPE IF EXISTS user_status;
-        DROP TYPE IF EXISTS user_role;
-    """)
+    for drop_stmt in [
+        "DROP POLICY IF EXISTS p_assets_all_read        ON assets",
+        "DROP POLICY IF EXISTS p_notifications_owner    ON notifications",
+        "DROP POLICY IF EXISTS p_refresh_owner          ON refresh_tokens",
+        "DROP POLICY IF EXISTS p_orders_technician_select ON service_orders",
+        "DROP TRIGGER IF EXISTS trg_recalc_budget_total ON budget_items",
+        "DROP TRIGGER IF EXISTS trg_audit_orders        ON service_orders",
+        "DROP TRIGGER IF EXISTS trg_stock_negative_check ON stock_movements",
+        "DROP TRIGGER IF EXISTS trg_recalc_total_cost   ON service_costs",
+        "DROP FUNCTION IF EXISTS fn_recalc_budget_total()",
+        "DROP FUNCTION IF EXISTS fn_audit_orders()",
+        "DROP FUNCTION IF EXISTS fn_stock_negative_check()",
+        "DROP FUNCTION IF EXISTS fn_recalc_total_cost()",
+        "DROP TABLE IF EXISTS notifications",
+        "DROP TABLE IF EXISTS audit_logs",
+        "DROP TABLE IF EXISTS budget_items",
+        "DROP TABLE IF EXISTS budgets",
+        "DROP TABLE IF EXISTS attachments",
+        "DROP TABLE IF EXISTS service_costs",
+        "DROP TABLE IF EXISTS stock_movements",
+        "DROP TABLE IF EXISTS order_assignments",
+        "DROP TABLE IF EXISTS service_orders",
+        "DROP TABLE IF EXISTS refresh_tokens",
+        "DROP TABLE IF EXISTS materials",
+        "DROP TABLE IF EXISTS assets",
+        "DROP TABLE IF EXISTS users",
+        "DROP TYPE IF EXISTS asset_status",
+        "DROP TYPE IF EXISTS material_status",
+        "DROP TYPE IF EXISTS budget_status",
+        "DROP TYPE IF EXISTS audit_action",
+        "DROP TYPE IF EXISTS cost_type",
+        "DROP TYPE IF EXISTS movement_type",
+        "DROP TYPE IF EXISTS order_priority",
+        "DROP TYPE IF EXISTS order_status",
+        "DROP TYPE IF EXISTS user_status",
+        "DROP TYPE IF EXISTS user_role"
+    ]:
+        op.execute(drop_stmt)
