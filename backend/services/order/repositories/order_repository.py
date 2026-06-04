@@ -7,7 +7,7 @@ from typing import Optional
 from sqlalchemy import and_, delete, func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from models.order import (
+from services.order.models.order import (
     AuditLog,
     OrderAsset,
     OrderAssignment,
@@ -15,7 +15,7 @@ from models.order import (
     OrderUser,
     ServiceOrder,
 )
-from schemas.order import (
+from services.order.schemas.order import (
     AssignOrderRequest,
     AttachmentResponse,
     AuditLogEntry,

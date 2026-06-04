@@ -12,8 +12,8 @@ import logging
 import redis.asyncio as aioredis
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
-from repositories.notification_repository import NotificationRepository
-from websocket_manager import manager as ws_manager
+from services.notification.repositories.notification_repository import NotificationRepository
+from services.notification.services.websocket_manager import manager as ws_manager
 
 logger = logging.getLogger(__name__)
 

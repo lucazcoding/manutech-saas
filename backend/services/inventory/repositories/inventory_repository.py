@@ -7,8 +7,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from shared.shared.exceptions.handlers import BusinessError
 
-from models.inventory import Material, StockMovement
-from schemas.inventory import (
+from services.inventory.models.inventory import Material, StockMovement
+from services.inventory.schemas.inventory import (
     CreateMaterialRequest,
     CreateMovementRequest,
     MaterialFilters,
