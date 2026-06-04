@@ -7,7 +7,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
 COPY requirements.txt /requirements.txt
-RUN pip install --no-cache-dir alembic asyncpg sqlalchemy[asyncio]
+RUN pip install --no-cache-dir alembic "psycopg[binary]" "sqlalchemy[asyncio]"
 
 COPY infra/migrations/ .
 

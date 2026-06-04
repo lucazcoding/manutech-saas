@@ -1,0 +1,1972 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MANUTECH — Sistema de Gestão de Manutenção</title>
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+  <style>
+    :root {
+      --primary: #0f172a; --accent: #2563eb; --secondary: #64748b;
+      --success: #10b981; --warning: #f59e0b; --danger: #ef4444;
+      --bg: #f1f5f9; --white: #ffffff; --border: #e2e8f0;
+      --radius: 10px; --shadow: 0 4px 10px -1px rgb(0 0 0 / 0.1);
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Inter','Segoe UI',sans-serif; }
+    html, body { height: 100%; }
+    body { background: var(--bg); color: var(--primary); display: flex; overflow: hidden; }
+    button, input, select, textarea { font: inherit; }
+    textarea.form-control { min-height: 80px; resize: vertical; }
+
+    /* ─ Login ─────────────────────────────────────────────────────────────── */
+    #login-overlay {
+      position: fixed; inset: 0; background: linear-gradient(135deg,#0f172a,#111827);
+      z-index: 9999; display: flex; align-items: center; justify-content: center; padding: 20px;
+    }
+    .login-card {
+      background: white; padding: 40px; border-radius: 18px; width: 100%; max-width: 420px;
+      box-shadow: 0 20px 40px rgba(0,0,0,0.2); text-align: center;
+    }
+
+    /* ─ Sidebar ───────────────────────────────────────────────────────────── */
+    aside {
+      width: 260px; background: var(--primary); color: white;
+      display: flex; flex-direction: column; flex-shrink: 0;
+    }
+    .logo {
+      padding: 25px; font-size: 1.45rem; font-weight: 800;
+      border-bottom: 1px solid #1e293b; color: #38bdf8;
+      display: flex; align-items: center; gap: 10px;
+    }
+    nav { flex: 1; padding: 20px 0; overflow-y: auto; }
+    .nav-group { margin-bottom: 20px; }
+    .nav-label {
+      padding: 0 25px; font-size: .75rem; color: #94a3b8;
+      text-transform: uppercase; letter-spacing: 1px; margin-bottom: 10px;
+    }
+    .nav-item {
+      padding: 12px 25px; display: flex; align-items: center; gap: 12px;
+      cursor: pointer; transition: .2s; color: #cbd5e1; font-size: .9rem; user-select: none;
+    }
+    .nav-item:hover { background: #1e293b; color: white; }
+    .nav-item.active { background: var(--accent); color: white; }
+
+    /* ─ Main ──────────────────────────────────────────────────────────────── */
+    main { flex: 1; display: flex; flex-direction: column; overflow: hidden; min-width: 0; }
+    header {
+      height: 70px; background: white; border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0 30px; flex-shrink: 0;
+    }
+    .content { flex: 1; padding: 30px; overflow-y: auto; }
+    .module { display: none; }
+    .module.active { display: block; }
+
+    /* ─ Cards ─────────────────────────────────────────────────────────────── */
+    .stats-grid {
+      display: grid; grid-template-columns: repeat(auto-fit,minmax(200px,1fr));
+      gap: 20px; margin-bottom: 30px;
+    }
+    .card-stat {
+      background: white; padding: 20px; border-radius: var(--radius);
+      box-shadow: var(--shadow); border-left: 4px solid var(--accent);
+    }
+    .card-stat h3 { font-size: .875rem; color: var(--secondary); margin-bottom: 10px; }
+    .card-stat .value { font-size: 1.75rem; font-weight: 700; }
+
+    /* ─ Table ─────────────────────────────────────────────────────────────── */
+    .table-container {
+      background: white; border-radius: var(--radius); box-shadow: var(--shadow);
+      overflow: hidden; margin-top: 20px; border: 1px solid rgba(226,232,240,.8);
+    }
+    table { width: 100%; border-collapse: collapse; }
+    th {
+      background: #f8fafc; padding: 15px; text-align: left; font-weight: 600;
+      border-bottom: 1px solid var(--border); color: var(--secondary);
+      font-size: .85rem; white-space: nowrap;
+    }
+    td { padding: 13px 15px; border-bottom: 1px solid var(--border); font-size: .88rem; vertical-align: middle; }
+    tr:last-child td { border-bottom: none; }
+    tr.low-stock { background: #fff1f2; }
+
+    /* ─ Buttons ───────────────────────────────────────────────────────────── */
+    .btn {
+      padding: 10px 18px; border-radius: var(--radius); border: none; cursor: pointer;
+      font-weight: 600; transition: .2s; display: inline-flex; align-items: center;
+      gap: 8px; font-size: .85rem; text-decoration: none; justify-content: center;
+    }
+    .btn:hover { transform: translateY(-1px); }
+    .btn:disabled { opacity: .5; cursor: not-allowed; transform: none; }
+    .btn-primary { background: var(--accent); color: white; }
+    .btn-outline { border: 1px solid var(--border); background: white; color: var(--secondary); }
+    .btn-danger { background: var(--danger); color: white; }
+    .btn-success { background: var(--success); color: white; }
+    .btn-sm { padding: 6px 10px; border-radius: 8px; font-size: .8rem; }
+
+    /* ─ Badges ────────────────────────────────────────────────────────────── */
+    .badge {
+      padding: 3px 8px; border-radius: 999px; font-size: .7rem; font-weight: 700;
+      text-transform: uppercase; display: inline-flex; align-items: center; white-space: nowrap;
+    }
+    .badge-open     { background: #dcfce7; color: #166534; }
+    .badge-progress { background: #dbeafe; color: #1e40af; }
+    .badge-done     { background: #f0fdf4; color: #15803d; }
+    .badge-cancelled{ background: #fee2e2; color: #991b1b; }
+    .badge-urgent   { background: #fee2e2; color: #991b1b; }
+    .badge-high     { background: #fef3c7; color: #92400e; }
+    .badge-medium   { background: #dbeafe; color: #1e40af; }
+    .badge-low      { background: #f1f5f9; color: #475569; }
+    .badge-success  { background: #dcfce7; color: #166534; }
+    .badge-warning  { background: #fef3c7; color: #92400e; }
+    .badge-muted    { background: #e2e8f0; color: #334155; }
+    .badge-admin    { background: #fee2e2; color: #991b1b; }
+    .badge-supervisor{ background: #fef3c7; color: #92400e; }
+    .badge-technician{ background: #dbeafe; color: #1e40af; }
+    .badge-attendant{ background: #dcfce7; color: #166534; }
+
+    /* ─ Forms ─────────────────────────────────────────────────────────────── */
+    .form-group { margin-bottom: 14px; }
+    .form-group label { display: block; font-size: .85rem; margin-bottom: 5px; font-weight: 600; }
+    .form-control {
+      width: 100%; padding: 10px 12px; border: 1px solid var(--border);
+      border-radius: var(--radius); outline: none; font-size: .9rem; background: white;
+    }
+    .form-control:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(37,99,235,.1); }
+    .form-row { display: flex; gap: 12px; flex-wrap: wrap; }
+    .form-row .form-group { flex: 1; min-width: 150px; }
+
+    /* ─ Modal ─────────────────────────────────────────────────────────────── */
+    .modal-overlay {
+      position: fixed; inset: 0; background: rgba(0,0,0,.5);
+      display: none; align-items: center; justify-content: center;
+      z-index: 1000; padding: 20px;
+    }
+    .modal-overlay.open { display: flex; }
+    .modal {
+      background: white; width: 680px; max-width: 100%; border-radius: 18px;
+      padding: 30px; position: relative; max-height: 92vh; overflow-y: auto;
+      box-shadow: 0 25px 50px rgba(0,0,0,.25);
+    }
+    .modal-sm { width: 480px; }
+    .modal-header {
+      display: flex; justify-content: space-between; align-items: center;
+      margin-bottom: 20px; border-bottom: 1px solid var(--border); padding-bottom: 15px;
+    }
+    .modal-header h3 { font-size: 1.1rem; }
+    .modal-footer { display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px; }
+
+    /* ─ Toast ─────────────────────────────────────────────────────────────── */
+    #toast {
+      position: fixed; bottom: 20px; right: 20px; background: var(--primary); color: white;
+      padding: 14px 22px; border-radius: var(--radius); transform: translateY(150%);
+      transition: .35s; z-index: 9999; display: flex; align-items: center; gap: 10px;
+      box-shadow: 0 10px 15px -3px rgba(0,0,0,.2); max-width: 400px;
+    }
+    #toast.show { transform: translateY(0); }
+    #toast.toast-error { background: var(--danger); }
+    #toast.toast-success { background: var(--success); }
+
+    /* ─ Utilities ─────────────────────────────────────────────────────────── */
+    .hidden { display: none !important; }
+    .flex { display: flex; }
+    .flex-wrap { flex-wrap: wrap; }
+    .items-center { align-items: center; }
+    .justify-between { justify-content: space-between; }
+    .gap-8  { gap: 8px; }
+    .gap-12 { gap: 12px; }
+    .mb-20  { margin-bottom: 20px; }
+    .mt-10  { margin-top: 10px; }
+    .muted  { color: var(--secondary); font-size: .85rem; }
+    .section-title { padding: 15px; font-weight: 700; border-bottom: 1px solid var(--border); }
+    .table-actions { display: flex; gap: 6px; flex-wrap: wrap; }
+    .no-data { padding: 40px; text-align: center; color: var(--secondary); }
+    .spinner { display: inline-block; width: 20px; height: 20px; border: 3px solid rgba(255,255,255,.3); border-top-color: white; border-radius: 50%; animation: spin .7s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .pagination { display: flex; align-items: center; gap: 10px; padding: 15px; justify-content: flex-end; }
+    .filter-bar { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 20px; align-items: center; }
+    .filter-bar .form-control { max-width: 220px; }
+    .info-box { background: #f8fafc; border: 1px solid var(--border); border-radius: var(--radius); padding: 15px; margin-bottom: 15px; font-size: .85rem; }
+    .cost-type-label { font-size: .7rem; padding: 2px 7px; border-radius: 6px; background: #e0f2fe; color: #0369a1; font-weight: 700; }
+    .activity-item { padding: 10px 12px; border: 1px solid var(--border); border-radius: 10px; background: #f8fafc; margin-bottom: 8px; font-size: .83rem; }
+  </style>
+</head>
+<body>
+
+<!-- ═══ LOGIN ═══════════════════════════════════════════════════════════════ -->
+<div id="login-overlay">
+  <div class="login-card">
+    <i class="fas fa-microchip fa-3x" style="color:var(--accent);margin-bottom:20px"></i>
+    <h2 style="margin-bottom:8px">MANUTECH</h2>
+    <p class="muted" style="margin-bottom:28px">Sistema de Gestão de Manutenção</p>
+    <div class="form-group" style="text-align:left">
+      <label>Login</label>
+      <input id="inp-login" class="form-control" placeholder="admin / supervisor / technician" autocomplete="username">
+    </div>
+    <div class="form-group" style="text-align:left">
+      <label>Senha</label>
+      <input id="inp-pass" type="password" class="form-control" placeholder="••••••••" autocomplete="current-password">
+    </div>
+    <button id="btn-login" class="btn btn-primary" style="width:100%;padding:14px" onclick="Auth.login()">
+      Entrar no Sistema
+    </button>
+    <p id="login-error" class="hidden" style="color:var(--danger);font-size:.82rem;margin-top:12px"></p>
+    <div style="margin-top:16px;font-size:.78rem;color:var(--secondary);text-align:left;line-height:1.6">
+      <b>Admin:</b> admin / admin123 &nbsp;|&nbsp;
+      <b>Supervisor:</b> supervisor / sup123 &nbsp;|&nbsp;
+      <b>Técnico:</b> technician / tech123
+    </div>
+  </div>
+</div>
+
+<!-- ═══ SIDEBAR ══════════════════════════════════════════════════════════════ -->
+<aside id="sidebar" class="hidden">
+  <div class="logo"><i class="fas fa-microchip"></i> MANUTECH</div>
+  <nav>
+    <div class="nav-group">
+      <div class="nav-label">Operacional</div>
+      <div class="nav-item active" data-mod="dashboard" onclick="UI.switchMod('dashboard',this)"><i class="fas fa-th-large"></i> Dashboard</div>
+      <div class="nav-item" data-mod="orders" onclick="UI.switchMod('orders',this)"><i class="fas fa-clipboard-list"></i> Ordens de Serviço</div>
+      <div class="nav-item" data-mod="assets" onclick="UI.switchMod('assets',this)"><i class="fas fa-industry"></i> Equipamentos</div>
+    </div>
+    <div class="nav-group">
+      <div class="nav-label">Recursos & Stock</div>
+      <div class="nav-item" data-mod="inventory" onclick="UI.switchMod('inventory',this)"><i class="fas fa-boxes"></i> Stock de Materiais</div>
+      <div class="nav-item" data-mod="finance" id="nav-finance" onclick="UI.switchMod('finance',this)"><i class="fas fa-coins"></i> Custos e Finanças</div>
+    </div>
+    <div class="nav-group">
+      <div class="nav-label">Gestão</div>
+      <div class="nav-item" data-mod="users" id="nav-users" onclick="UI.switchMod('users',this)"><i class="fas fa-users-cog"></i> Utilizadores</div>
+      <div class="nav-item" data-mod="notifications" onclick="UI.switchMod('notifications',this)"><i class="fas fa-bell"></i> Notificações <span id="notif-badge" class="badge badge-urgent hidden" style="margin-left:auto"></span></div>
+    </div>
+  </nav>
+  <div style="padding:20px;border-top:1px solid #1e293b">
+    <div class="nav-item" style="padding:0;color:#f87171" onclick="Auth.logout()"><i class="fas fa-power-off"></i> Sair</div>
+  </div>
+</aside>
+
+<!-- ═══ MAIN ═══════════════════════════════════════════════════════════════ -->
+<main id="main" class="hidden">
+  <header>
+    <div id="mod-title" style="font-weight:700;font-size:1.1rem">Dashboard</div>
+    <div class="flex items-center gap-12">
+      <div id="user-name" style="font-weight:600;font-size:.9rem"></div>
+      <span id="user-role-badge" class="badge"></span>
+      <button class="btn btn-outline btn-sm" onclick="Auth.logout()"><i class="fas fa-sign-out-alt"></i></button>
+    </div>
+  </header>
+
+  <div class="content">
+
+    <!-- Dashboard -->
+    <section id="mod-dashboard" class="module active">
+      <div class="stats-grid" id="dash-stats">
+        <div class="card-stat"><h3>Abertas</h3><div class="value" id="s-open">–</div></div>
+        <div class="card-stat" style="border-color:var(--warning)"><h3>Em Andamento</h3><div class="value" id="s-progress">–</div></div>
+        <div class="card-stat" style="border-color:var(--success)"><h3>Concluídas</h3><div class="value" id="s-done">–</div></div>
+        <div class="card-stat" style="border-color:var(--danger)"><h3>Canceladas</h3><div class="value" id="s-cancelled">–</div></div>
+        <div class="card-stat" style="border-color:var(--secondary)"><h3>Total OS</h3><div class="value" id="s-total">–</div></div>
+      </div>
+      <div class="flex gap-12 flex-wrap">
+        <div class="table-container" style="flex:2;min-width:320px">
+          <div class="section-title">Ordens Recentes</div>
+          <table><thead><tr><th>#</th><th>Cliente</th><th>Prioridade</th><th>Status</th></tr></thead>
+          <tbody id="dash-orders"></tbody></table>
+        </div>
+        <div class="table-container" style="flex:1;min-width:280px">
+          <div class="section-title">Notificações Recentes</div>
+          <div id="dash-notifs" style="padding:10px"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Orders -->
+    <section id="mod-orders" class="module">
+      <div class="filter-bar">
+        <input class="form-control" placeholder="Buscar..." id="ord-search" oninput="Orders.applyFilter()">
+        <select class="form-control" id="ord-status" onchange="Orders.applyFilter()">
+          <option value="">Status: Todos</option>
+          <option value="open">Aberta</option>
+          <option value="in_progress">Em Andamento</option>
+          <option value="completed">Concluída</option>
+          <option value="cancelled">Cancelada</option>
+        </select>
+        <select class="form-control" id="ord-priority" onchange="Orders.applyFilter()">
+          <option value="">Prioridade: Todas</option>
+          <option value="urgent">Urgente</option>
+          <option value="high">Alta</option>
+          <option value="medium">Média</option>
+          <option value="low">Baixa</option>
+        </select>
+        <button class="btn btn-primary" id="btn-new-order" onclick="Orders.openCreate()"><i class="fas fa-plus"></i> Nova OS</button>
+      </div>
+      <div class="table-container">
+        <table>
+          <thead><tr><th>#OS</th><th>Cliente</th><th>Local</th><th>Equipamento</th><th>Técnico</th><th>Prioridade</th><th>Status</th><th>Custo</th><th>Ações</th></tr></thead>
+          <tbody id="ord-list"></tbody>
+        </table>
+        <div class="pagination" id="ord-pag"></div>
+      </div>
+    </section>
+
+    <!-- Assets -->
+    <section id="mod-assets" class="module">
+      <div class="filter-bar">
+        <input class="form-control" placeholder="Buscar equipamento..." id="ast-search" oninput="Assets.applyFilter()">
+        <select class="form-control" id="ast-status" onchange="Assets.applyFilter()">
+          <option value="">Status: Todos</option>
+          <option value="active">Ativo</option>
+          <option value="inactive">Inativo</option>
+        </select>
+        <button class="btn btn-primary" id="btn-new-asset" onclick="Assets.openCreate()"><i class="fas fa-plus"></i> Novo Equipamento</button>
+      </div>
+      <div class="table-container">
+        <table>
+          <thead><tr><th>ID</th><th>Nome</th><th>Modelo</th><th>Fabricante</th><th>Nº Série</th><th>Localização</th><th>Status</th><th>Ações</th></tr></thead>
+          <tbody id="ast-list"></tbody>
+        </table>
+        <div class="pagination" id="ast-pag"></div>
+      </div>
+    </section>
+
+    <!-- Inventory -->
+    <section id="mod-inventory" class="module">
+      <div style="display:flex;gap:10px;margin-bottom:20px;flex-wrap:wrap">
+        <button class="btn btn-primary active-tab" onclick="Inventory.showTab('materials',this)"><i class="fas fa-boxes"></i> Materiais</button>
+        <button class="btn btn-outline" onclick="Inventory.showTab('movements',this)" id="btn-tab-mov"><i class="fas fa-exchange-alt"></i> Movimentações</button>
+        <button class="btn btn-outline" onclick="Inventory.showTab('stock',this)" id="btn-tab-stock"><i class="fas fa-chart-bar"></i> Relatório de Stock</button>
+      </div>
+
+      <div id="inv-materials">
+        <div class="filter-bar">
+          <input class="form-control" placeholder="Buscar material..." id="mat-search" oninput="Inventory.applyFilter()">
+          <select class="form-control" id="mat-status-filter" onchange="Inventory.applyFilter()">
+            <option value="">Status: Todos</option>
+            <option value="active">Ativo</option>
+            <option value="inactive">Inativo</option>
+          </select>
+          <button class="btn btn-primary" id="btn-new-mat" onclick="Inventory.openCreateMaterial()"><i class="fas fa-plus"></i> Novo Material</button>
+          <button class="btn btn-outline" onclick="Inventory.openCreateMovement()"><i class="fas fa-exchange-alt"></i> Registrar Movimentação</button>
+        </div>
+        <div class="table-container">
+          <table>
+            <thead><tr><th>ID</th><th>Nome</th><th>SKU</th><th>Qtd. Estoque</th><th>Qtd. Mínima</th><th>Preço Unit.</th><th>Status</th><th>Ações</th></tr></thead>
+            <tbody id="mat-list"></tbody>
+          </table>
+          <div class="pagination" id="mat-pag"></div>
+        </div>
+      </div>
+
+      <div id="inv-movements" class="hidden">
+        <div class="filter-bar">
+          <button class="btn btn-primary" onclick="Inventory.openCreateMovement()"><i class="fas fa-plus"></i> Nova Movimentação</button>
+        </div>
+        <div class="table-container">
+          <table>
+            <thead><tr><th>ID</th><th>Material</th><th>Tipo</th><th>Quantidade</th><th>Nota</th><th>Data</th></tr></thead>
+            <tbody id="mov-list"></tbody>
+          </table>
+          <div class="pagination" id="mov-pag"></div>
+        </div>
+      </div>
+
+      <div id="inv-stock" class="hidden">
+        <div class="table-container">
+          <div class="section-title flex justify-between items-center" style="padding:15px">
+            <span>Relatório de Stock Atual</span>
+            <button class="btn btn-outline btn-sm" onclick="Inventory.loadStockReport()"><i class="fas fa-sync"></i> Atualizar</button>
+          </div>
+          <table>
+            <thead><tr><th>Nome</th><th>SKU</th><th>Qtd. Atual</th><th>Qtd. Mínima</th><th>Situação</th></tr></thead>
+            <tbody id="stock-list"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- Finance -->
+    <section id="mod-finance" class="module">
+      <div style="display:flex;gap:10px;margin-bottom:20px;flex-wrap:wrap">
+        <button class="btn btn-primary" onclick="Finance.showTab('costs',this)"><i class="fas fa-file-invoice-dollar"></i> Custos</button>
+        <button class="btn btn-outline" onclick="Finance.showTab('budgets',this)"><i class="fas fa-file-contract"></i> Orçamentos</button>
+        <button class="btn btn-outline" onclick="Finance.showTab('report',this)"><i class="fas fa-chart-pie"></i> Relatório Financeiro</button>
+      </div>
+
+      <div id="fin-costs">
+        <div class="filter-bar">
+          <input class="form-control" placeholder="Filtrar por OS ID..." id="cost-order-id" type="number" style="max-width:180px" oninput="Finance.applyFilter()">
+          <select class="form-control" id="cost-type-filter" onchange="Finance.applyFilter()">
+            <option value="">Tipo: Todos</option>
+            <option value="material">Material</option>
+            <option value="labor">Mão de obra</option>
+            <option value="service">Serviço</option>
+            <option value="other">Outro</option>
+          </select>
+          <button class="btn btn-primary" onclick="Finance.openCreateCost()"><i class="fas fa-plus"></i> Registrar Custo</button>
+        </div>
+        <div class="table-container">
+          <table>
+            <thead><tr><th>ID</th><th>OS</th><th>Descrição</th><th>Tipo</th><th>Valor</th><th>Data</th><th>Ações</th></tr></thead>
+            <tbody id="cost-list"></tbody>
+          </table>
+          <div class="pagination" id="cost-pag"></div>
+        </div>
+      </div>
+
+      <div id="fin-budgets" class="hidden">
+        <div class="filter-bar">
+          <select class="form-control" id="bud-status-filter" onchange="Finance.applyBudgetFilter()">
+            <option value="">Status: Todos</option>
+            <option value="draft">Rascunho</option>
+            <option value="sent">Enviado</option>
+            <option value="approved">Aprovado</option>
+            <option value="rejected">Rejeitado</option>
+            <option value="expired">Expirado</option>
+          </select>
+          <button class="btn btn-primary" onclick="Finance.openCreateBudget()"><i class="fas fa-plus"></i> Novo Orçamento</button>
+        </div>
+        <div class="table-container">
+          <table>
+            <thead><tr><th>#</th><th>Cliente</th><th>OS</th><th>Total</th><th>Status</th><th>Validade</th><th>Ações</th></tr></thead>
+            <tbody id="bud-list"></tbody>
+          </table>
+          <div class="pagination" id="bud-pag"></div>
+        </div>
+      </div>
+
+      <div id="fin-report" class="hidden">
+        <div class="stats-grid" id="fin-summary">
+          <div class="card-stat"><h3>Total de Custos</h3><div class="value" id="rep-total">–</div></div>
+          <div class="card-stat" style="border-color:var(--warning)"><h3>Custo Médio / OS</h3><div class="value" id="rep-avg">–</div></div>
+          <div class="card-stat" style="border-color:var(--success)"><h3>Ordens Analisadas</h3><div class="value" id="rep-count">–</div></div>
+        </div>
+        <div class="table-container" id="rep-by-type">
+          <div class="section-title">Custos por Tipo</div>
+          <table><thead><tr><th>Tipo</th><th>Total</th></tr></thead>
+          <tbody id="rep-type-list"></tbody></table>
+        </div>
+        <button class="btn btn-primary mt-10" onclick="Finance.loadReport()"><i class="fas fa-sync"></i> Atualizar Relatório</button>
+      </div>
+    </section>
+
+    <!-- Users -->
+    <section id="mod-users" class="module">
+      <div class="filter-bar">
+        <input class="form-control" placeholder="Buscar usuário..." id="usr-search" oninput="Users.applyFilter()">
+        <select class="form-control" id="usr-role-filter" onchange="Users.applyFilter()">
+          <option value="">Role: Todos</option>
+          <option value="admin">Admin</option>
+          <option value="supervisor">Supervisor</option>
+          <option value="technician">Técnico</option>
+          <option value="attendant">Atendente</option>
+        </select>
+        <select class="form-control" id="usr-status-filter" onchange="Users.applyFilter()">
+          <option value="">Status: Todos</option>
+          <option value="active">Ativo</option>
+          <option value="inactive">Inativo</option>
+        </select>
+        <button class="btn btn-primary" onclick="Users.openCreate()"><i class="fas fa-plus"></i> Novo Usuário</button>
+      </div>
+      <div class="table-container">
+        <table>
+          <thead><tr><th>ID</th><th>Nome</th><th>Login</th><th>Email</th><th>Role</th><th>Status</th><th>Criado em</th><th>Ações</th></tr></thead>
+          <tbody id="usr-list"></tbody>
+        </table>
+        <div class="pagination" id="usr-pag"></div>
+      </div>
+    </section>
+
+    <!-- Notifications -->
+    <section id="mod-notifications" class="module">
+      <div class="filter-bar">
+        <button class="btn btn-outline" onclick="Notifications.markAllRead()"><i class="fas fa-check-double"></i> Marcar todas como lidas</button>
+        <button class="btn btn-outline" onclick="Notifications.load()"><i class="fas fa-sync"></i> Atualizar</button>
+      </div>
+      <div id="notif-list" style="display:grid;gap:10px"></div>
+      <div class="pagination" id="notif-pag"></div>
+    </section>
+
+  </div><!-- content -->
+</main>
+
+<!-- ═══ MODALS ════════════════════════════════════════════════════════════════ -->
+
+<!-- Order modal -->
+<div class="modal-overlay" id="modal-order" onclick="if(event.target===this)UI.closeModal('modal-order')">
+  <div class="modal" onclick="event.stopPropagation()">
+    <div class="modal-header">
+      <h3 id="modal-order-title">Nova Ordem de Serviço</h3>
+      <button class="btn btn-outline btn-sm" onclick="UI.closeModal('modal-order')">&times;</button>
+    </div>
+    <div class="form-row">
+      <div class="form-group" style="flex:2">
+        <label>Nome do Cliente *</label>
+        <input id="ord-client" class="form-control" placeholder="Ex: Empresa ABC Ltda">
+      </div>
+      <div class="form-group" style="flex:1">
+        <label>Prioridade</label>
+        <select id="ord-prio" class="form-control">
+          <option value="low">Baixa</option>
+          <option value="medium" selected>Média</option>
+          <option value="high">Alta</option>
+          <option value="urgent">Urgente</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-group">
+      <label>Localização *</label>
+      <input id="ord-loc" class="form-control" placeholder="Ex: Galpão B, Setor 3">
+    </div>
+    <div class="form-group">
+      <label>Descrição</label>
+      <textarea id="ord-desc" class="form-control" placeholder="Descreva o problema ou serviço..."></textarea>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>Equipamento (opcional)</label>
+        <select id="ord-asset" class="form-control"><option value="">Nenhum</option></select>
+      </div>
+      <div class="form-group">
+        <label>Data Início</label>
+        <input id="ord-start" type="date" class="form-control">
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="UI.closeModal('modal-order')">Cancelar</button>
+      <button class="btn btn-primary" onclick="Orders.save()">Salvar OS</button>
+    </div>
+  </div>
+</div>
+
+<!-- Order actions modal (status / assign) -->
+<div class="modal-overlay" id="modal-order-actions" onclick="if(event.target===this)UI.closeModal('modal-order-actions')">
+  <div class="modal modal-sm" onclick="event.stopPropagation()">
+    <div class="modal-header">
+      <h3 id="oa-title">Ações da OS</h3>
+      <button class="btn btn-outline btn-sm" onclick="UI.closeModal('modal-order-actions')">&times;</button>
+    </div>
+    <div id="oa-body"></div>
+  </div>
+</div>
+
+<!-- Asset modal -->
+<div class="modal-overlay" id="modal-asset" onclick="if(event.target===this)UI.closeModal('modal-asset')">
+  <div class="modal modal-sm" onclick="event.stopPropagation()">
+    <div class="modal-header">
+      <h3 id="modal-asset-title">Novo Equipamento</h3>
+      <button class="btn btn-outline btn-sm" onclick="UI.closeModal('modal-asset')">&times;</button>
+    </div>
+    <div class="form-group"><label>Nome *</label><input id="ast-name" class="form-control" placeholder="Ex: Compressor Atlas 02"></div>
+    <div class="form-row">
+      <div class="form-group"><label>Modelo</label><input id="ast-model" class="form-control"></div>
+      <div class="form-group"><label>Fabricante</label><input id="ast-mfr" class="form-control"></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label>Nº Série</label><input id="ast-serial" class="form-control"></div>
+      <div class="form-group"><label>Localização</label><input id="ast-loc" class="form-control"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="UI.closeModal('modal-asset')">Cancelar</button>
+      <button class="btn btn-primary" onclick="Assets.save()">Salvar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Material modal -->
+<div class="modal-overlay" id="modal-material" onclick="if(event.target===this)UI.closeModal('modal-material')">
+  <div class="modal modal-sm" onclick="event.stopPropagation()">
+    <div class="modal-header">
+      <h3 id="modal-mat-title">Novo Material</h3>
+      <button class="btn btn-outline btn-sm" onclick="UI.closeModal('modal-material')">&times;</button>
+    </div>
+    <div class="form-group"><label>Nome *</label><input id="mat-name" class="form-control"></div>
+    <div class="form-row">
+      <div class="form-group"><label>SKU *</label><input id="mat-sku" class="form-control" placeholder="Ex: F-120"></div>
+      <div class="form-group"><label>Preço Unit. (R$) *</label><input id="mat-price" type="number" step="0.01" min="0" class="form-control"></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label>Qtd. Inicial</label><input id="mat-qty" type="number" step="0.001" min="0" class="form-control" value="0"></div>
+      <div class="form-group"><label>Qtd. Mínima</label><input id="mat-min" type="number" step="0.001" min="0" class="form-control" value="5"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="UI.closeModal('modal-material')">Cancelar</button>
+      <button class="btn btn-primary" onclick="Inventory.saveMaterial()">Salvar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Movement modal -->
+<div class="modal-overlay" id="modal-movement" onclick="if(event.target===this)UI.closeModal('modal-movement')">
+  <div class="modal modal-sm" onclick="event.stopPropagation()">
+    <div class="modal-header">
+      <h3>Registrar Movimentação</h3>
+      <button class="btn btn-outline btn-sm" onclick="UI.closeModal('modal-movement')">&times;</button>
+    </div>
+    <div class="form-group"><label>Material *</label><select id="mov-mat" class="form-control"></select></div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>Tipo *</label>
+        <select id="mov-type" class="form-control">
+          <option value="in">Entrada</option>
+          <option value="out">Saída</option>
+        </select>
+      </div>
+      <div class="form-group"><label>Quantidade *</label><input id="mov-qty" type="number" step="0.001" min="0.001" class="form-control"></div>
+    </div>
+    <div class="form-group"><label>Nota</label><input id="mov-note" class="form-control" placeholder="Observação..."></div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="UI.closeModal('modal-movement')">Cancelar</button>
+      <button class="btn btn-primary" onclick="Inventory.saveMovement()">Registrar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Cost modal -->
+<div class="modal-overlay" id="modal-cost" onclick="if(event.target===this)UI.closeModal('modal-cost')">
+  <div class="modal modal-sm" onclick="event.stopPropagation()">
+    <div class="modal-header">
+      <h3 id="modal-cost-title">Registrar Custo</h3>
+      <button class="btn btn-outline btn-sm" onclick="UI.closeModal('modal-cost')">&times;</button>
+    </div>
+    <div class="form-group"><label>OS *</label><select id="cost-ord-id" class="form-control"><option value="">Carregando...</option></select></div>
+    <div class="form-group"><label>Descrição *</label><input id="cost-desc" class="form-control"></div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>Tipo</label>
+        <select id="cost-type" class="form-control">
+          <option value="material">Material</option>
+          <option value="labor">Mão de obra</option>
+          <option value="service">Serviço</option>
+          <option value="other">Outro</option>
+        </select>
+      </div>
+      <div class="form-group"><label>Valor (R$) *</label><input id="cost-amount" type="number" step="0.01" min="0" class="form-control"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="UI.closeModal('modal-cost')">Cancelar</button>
+      <button class="btn btn-primary" onclick="Finance.saveCost()">Salvar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Budget modal -->
+<div class="modal-overlay" id="modal-budget" onclick="if(event.target===this)UI.closeModal('modal-budget')">
+  <div class="modal" onclick="event.stopPropagation()">
+    <div class="modal-header">
+      <h3 id="modal-bud-title">Novo Orçamento</h3>
+      <button class="btn btn-outline btn-sm" onclick="UI.closeModal('modal-budget')">&times;</button>
+    </div>
+    <div class="form-group"><label>Nome do Cliente *</label><input id="bud-client" class="form-control"></div>
+    <div class="form-row">
+      <div class="form-group"><label>OS (opcional)</label><select id="bud-ord" class="form-control"><option value="">Nenhuma (opcional)</option></select></div>
+      <div class="form-group"><label>Válido até</label><input id="bud-valid" type="date" class="form-control"></div>
+    </div>
+    <div class="form-group"><label>Descrição</label><textarea id="bud-desc" class="form-control"></textarea></div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="UI.closeModal('modal-budget')">Cancelar</button>
+      <button class="btn btn-primary" onclick="Finance.saveBudget()">Salvar</button>
+    </div>
+  </div>
+</div>
+
+<!-- User modal -->
+<div class="modal-overlay" id="modal-user" onclick="if(event.target===this)UI.closeModal('modal-user')">
+  <div class="modal modal-sm" onclick="event.stopPropagation()">
+    <div class="modal-header">
+      <h3 id="modal-usr-title">Novo Usuário</h3>
+      <button class="btn btn-outline btn-sm" onclick="UI.closeModal('modal-user')">&times;</button>
+    </div>
+    <div class="form-group"><label>Nome *</label><input id="usr-name" class="form-control"></div>
+    <div class="form-group"><label>Login *</label><input id="usr-login" class="form-control"></div>
+    <div class="form-group"><label>Email *</label><input id="usr-email" type="email" class="form-control"></div>
+    <div class="form-group"><label>Senha *</label><input id="usr-pass" type="password" class="form-control" placeholder="Mínimo 8 caracteres"></div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>Role *</label>
+        <select id="usr-role" class="form-control">
+          <option value="admin">Admin</option>
+          <option value="supervisor">Supervisor</option>
+          <option value="technician">Técnico</option>
+          <option value="attendant">Atendente</option>
+        </select>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="UI.closeModal('modal-user')">Cancelar</button>
+      <button class="btn btn-primary" onclick="Users.save()">Salvar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div id="toast"><i class="fas fa-info-circle"></i><span id="toast-msg"></span></div>
+
+<script>
+// ═══════════════════════════════════════════════════════════════════════════
+// CONFIG
+// ═══════════════════════════════════════════════════════════════════════════
+const API = 'http://localhost/api/v1';
+
+// ═══════════════════════════════════════════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════════════════════════════════════════
+const State = {
+  accessToken: null,
+  refreshToken: null,
+  user: null,
+  allAssets: [],     // cache for selects
+  allMaterials: [],  // cache for selects
+  editingOrderId: null,
+  editingAssetId: null,
+  editingMaterialId: null,
+  editingCostId: null,
+  editingUserId: null,
+};
+
+// ═══════════════════════════════════════════════════════════════════════════
+// API LAYER
+// ═══════════════════════════════════════════════════════════════════════════
+async function apiCall(method, path, body = null, retry = true) {
+  const headers = { 'Content-Type': 'application/json', 'Accept': 'application/json' };
+  if (State.accessToken) headers['Authorization'] = `Bearer ${State.accessToken}`;
+
+  const opts = { method, headers };
+  if (body !== null) opts.body = JSON.stringify(body);
+
+  let res;
+  try {
+    res = await fetch(API + path, opts);
+  } catch (e) {
+    throw { detail: 'Serviço indisponível. Verifique se o backend está rodando.', code: 'NETWORK_ERROR' };
+  }
+
+  if (res.status === 204) return null;
+
+  // Token expirado — tenta refresh automático
+  if (res.status === 401 && retry && State.refreshToken) {
+    const ok = await Auth.tryRefresh();
+    if (ok) return apiCall(method, path, body, false);
+  }
+
+  const data = await res.json().catch(() => ({}));
+
+  if (!res.ok) {
+    throw data;
+  }
+  return data;
+}
+
+const api = {
+  get:    (path) => apiCall('GET', path),
+  post:   (path, body) => apiCall('POST', path, body),
+  put:    (path, body) => apiCall('PUT', path, body),
+  patch:  (path, body) => apiCall('PATCH', path, body),
+  delete: (path) => apiCall('DELETE', path),
+};
+
+// ═══════════════════════════════════════════════════════════════════════════
+// HELPERS
+// ═══════════════════════════════════════════════════════════════════════════
+function esc(v) {
+  return String(v ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function fmtDate(v) {
+  if (!v) return '—';
+  const d = new Date(v);
+  return isNaN(d) ? v : d.toLocaleDateString('pt-BR');
+}
+
+function fmtDateTime(v) {
+  if (!v) return '—';
+  const d = new Date(v);
+  return isNaN(d) ? v : d.toLocaleString('pt-BR');
+}
+
+function fmtMoney(v) {
+  return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(Number(v ?? 0));
+}
+
+function fmtNum(v, dec = 3) {
+  return Number(Number(v ?? 0).toFixed(dec)).toString();
+}
+
+const STATUS_LABELS = {
+  open: 'Aberta', in_progress: 'Em Andamento', completed: 'Concluída', cancelled: 'Cancelada',
+  active: 'Ativo', inactive: 'Inativo',
+  draft: 'Rascunho', sent: 'Enviado', approved: 'Aprovado', rejected: 'Rejeitado', expired: 'Expirado',
+};
+
+const STATUS_BADGE = {
+  open: 'badge-open', in_progress: 'badge-progress', completed: 'badge-done', cancelled: 'badge-cancelled',
+  active: 'badge-success', inactive: 'badge-muted',
+  draft: 'badge-muted', sent: 'badge-progress', approved: 'badge-success', rejected: 'badge-cancelled', expired: 'badge-high',
+};
+
+const PRIO_BADGE = { urgent:'badge-urgent', high:'badge-high', medium:'badge-medium', low:'badge-low' };
+const PRIO_LABELS = { urgent:'Urgente', high:'Alta', medium:'Média', low:'Baixa' };
+
+const ROLE_BADGE = { admin:'badge-admin', supervisor:'badge-supervisor', technician:'badge-technician', attendant:'badge-attendant' };
+const ROLE_LABELS = { admin:'Admin', supervisor:'Supervisor', technician:'Técnico', attendant:'Atendente' };
+
+function badge(cls, text) { return `<span class="badge ${esc(cls)}">${esc(text)}</span>`; }
+
+function paginationHtml(page, pages, onNav) {
+  if (pages <= 1) return '';
+  let h = `<span class="muted">Pág. ${page} / ${pages}</span>`;
+  h += `<button class="btn btn-outline btn-sm" ${page<=1?'disabled':''} onclick="${onNav}(${page-1})">‹</button>`;
+  h += `<button class="btn btn-outline btn-sm" ${page>=pages?'disabled':''} onclick="${onNav}(${page+1})">›</button>`;
+  return h;
+}
+
+function role() { return State.user?.role ?? ''; }
+
+function can(...roles) { return roles.includes(role()); }
+
+// ═══════════════════════════════════════════════════════════════════════════
+// UI
+// ═══════════════════════════════════════════════════════════════════════════
+const UI = {
+  _timer: null,
+
+  toast(msg, type = '') {
+    const el = document.getElementById('toast');
+    const msgEl = document.getElementById('toast-msg');
+    el.className = type ? `show toast-${type}` : 'show';
+    msgEl.textContent = msg;
+    clearTimeout(this._timer);
+    this._timer = setTimeout(() => el.classList.remove('show'), 3500);
+  },
+
+  error(err) {
+    const msg = err?.detail ?? err?.message ?? 'Erro desconhecido';
+    this.toast(msg, 'error');
+  },
+
+  openModal(id) { document.getElementById(id).classList.add('open'); },
+  closeModal(id) { document.getElementById(id).classList.remove('open'); },
+
+  switchMod(mod, el) {
+    document.querySelectorAll('.module').forEach(m => m.classList.remove('active'));
+    document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+    const sec = document.getElementById('mod-' + mod);
+    if (sec) sec.classList.add('active');
+    if (el) el.classList.add('active');
+    document.getElementById('mod-title').textContent = {
+      dashboard: 'Dashboard', orders: 'Ordens de Serviço', assets: 'Equipamentos',
+      inventory: 'Stock de Materiais', finance: 'Custos e Finanças',
+      users: 'Utilizadores', notifications: 'Notificações',
+    }[mod] || mod;
+
+    if (mod === 'dashboard') Dashboard.load();
+    else if (mod === 'orders') Orders.load(1);
+    else if (mod === 'assets') Assets.load(1);
+    else if (mod === 'inventory') Inventory.loadMaterials(1);
+    else if (mod === 'finance') Finance.loadCosts(1);
+    else if (mod === 'users') Users.load(1);
+    else if (mod === 'notifications') Notifications.load(1);
+  },
+
+  applyPermissions() {
+    const r = role();
+    // Finance hidden from technicians and attendants
+    if (!can('admin', 'supervisor')) {
+      document.getElementById('nav-finance')?.classList.add('hidden');
+    }
+    // Users hidden from non-admins
+    if (!can('admin')) {
+      document.getElementById('nav-users')?.classList.add('hidden');
+    }
+    // New order button: admin, supervisor and attendant
+    const btnOrd = document.getElementById('btn-new-order');
+    if (btnOrd && !can('admin', 'supervisor', 'attendant')) btnOrd.classList.add('hidden');
+    // New asset button: only admin/supervisor
+    const btnAst = document.getElementById('btn-new-asset');
+    if (btnAst && !can('admin', 'supervisor')) btnAst.classList.add('hidden');
+    // New material: only admin/supervisor
+    const btnMat = document.getElementById('btn-new-mat');
+    if (btnMat && !can('admin', 'supervisor')) btnMat.classList.add('hidden');
+  },
+
+  setUserInfo() {
+    const u = State.user;
+    document.getElementById('user-name').textContent = u?.name ?? '';
+    const rb = document.getElementById('user-role-badge');
+    rb.className = `badge ${ROLE_BADGE[u?.role] ?? ''}`;
+    rb.textContent = ROLE_LABELS[u?.role] ?? u?.role ?? '';
+  },
+};
+
+// ═══════════════════════════════════════════════════════════════════════════
+// AUTH
+// ═══════════════════════════════════════════════════════════════════════════
+const Auth = {
+  async login() {
+    const login = document.getElementById('inp-login').value.trim();
+    const password = document.getElementById('inp-pass').value;
+    const errEl = document.getElementById('login-error');
+    const btn = document.getElementById('btn-login');
+
+    errEl.classList.add('hidden');
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner"></span> Entrando...';
+
+    try {
+      const data = await api.post('/auth/login', { login, password });
+      State.accessToken = data.access_token;
+      State.refreshToken = data.refresh_token;
+      State.user = data.user;
+
+      document.getElementById('login-overlay').classList.add('hidden');
+      document.getElementById('sidebar').classList.remove('hidden');
+      document.getElementById('main').classList.remove('hidden');
+
+      UI.setUserInfo();
+      UI.applyPermissions();
+      await Assets.loadAll();
+      await Inventory.loadAllMaterials();
+      Dashboard.load();
+      Notifications.loadCount();
+    } catch (err) {
+      errEl.textContent = err?.detail ?? 'Credenciais inválidas ou sistema indisponível.';
+      errEl.classList.remove('hidden');
+    } finally {
+      btn.disabled = false;
+      btn.textContent = 'Entrar no Sistema';
+    }
+  },
+
+  async tryRefresh() {
+    if (!State.refreshToken) return false;
+    try {
+      const data = await apiCall('POST', '/auth/refresh', { refresh_token: State.refreshToken }, false);
+      State.accessToken = data.access_token;
+      return true;
+    } catch { return false; }
+  },
+
+  async logout() {
+    try {
+      if (State.refreshToken) await api.post('/auth/logout', { refresh_token: State.refreshToken });
+    } catch {}
+    State.accessToken = null;
+    State.refreshToken = null;
+    State.user = null;
+    location.reload();
+  },
+};
+
+// ═══════════════════════════════════════════════════════════════════════════
+// DASHBOARD
+// ═══════════════════════════════════════════════════════════════════════════
+const Dashboard = {
+  async load() {
+    // Stats — only admin/supervisor
+    if (can('admin', 'supervisor')) {
+      try {
+        const stats = await api.get('/orders/stats');
+        const bs = stats.by_status ?? {};
+        document.getElementById('s-open').textContent      = bs.open ?? 0;
+        document.getElementById('s-progress').textContent  = bs.in_progress ?? 0;
+        document.getElementById('s-done').textContent      = bs.completed ?? 0;
+        document.getElementById('s-cancelled').textContent = bs.cancelled ?? 0;
+        document.getElementById('s-total').textContent     = stats.total ?? 0;
+      } catch {}
+    } else {
+      document.getElementById('dash-stats').innerHTML = '<p class="muted">Stats disponíveis para admin/supervisor.</p>';
+    }
+
+    // Recent orders
+    try {
+      const q = role() === 'technician' ? '' : '';
+      const data = await api.get('/orders?page=1&page_size=5');
+      const tbody = document.getElementById('dash-orders');
+      tbody.innerHTML = (data.items ?? []).map(o => `
+        <tr>
+          <td><b>#${esc(o.order_number)}</b></td>
+          <td>${esc(o.client_name)}</td>
+          <td>${badge(PRIO_BADGE[o.priority], PRIO_LABELS[o.priority] ?? o.priority)}</td>
+          <td>${badge(STATUS_BADGE[o.status], STATUS_LABELS[o.status] ?? o.status)}</td>
+        </tr>
+      `).join('') || '<tr><td colspan="4" class="no-data">Nenhuma OS.</td></tr>';
+    } catch {}
+
+    // Notifications
+    try {
+      const data = await api.get('/notifications?page=1&page_size=5');
+      const el = document.getElementById('dash-notifs');
+      el.innerHTML = (data.items ?? []).map(n => `
+        <div class="activity-item" style="${n.read ? 'opacity:.6' : ''}">
+          <div style="font-weight:${n.read ? 400 : 700}">${esc(n.title ? n.title + ': ' : '') + esc(n.message ?? '')}</div>
+          <div class="muted">${fmtDateTime(n.created_at)}</div>
+        </div>
+      `).join('') || '<p class="muted" style="padding:10px">Sem notificações.</p>';
+    } catch {}
+  },
+};
+
+// ═══════════════════════════════════════════════════════════════════════════
+// ORDERS
+// ═══════════════════════════════════════════════════════════════════════════
+const Orders = {
+  _page: 1, _pages: 1,
+
+  async load(page = 1) {
+    this._page = page;
+    const search = document.getElementById('ord-search').value;
+    const status = document.getElementById('ord-status').value;
+    const priority = document.getElementById('ord-priority').value;
+
+    let qs = `?page=${page}&page_size=20`;
+    if (status) qs += `&status=${status}`;
+    if (priority) qs += `&priority=${priority}`;
+
+    const tbody = document.getElementById('ord-list');
+    tbody.innerHTML = '<tr><td colspan="9" class="no-data">Carregando...</td></tr>';
+
+    try {
+      const data = await api.get('/orders' + qs);
+      const items = (data.items ?? []).filter(o => {
+        if (!search) return true;
+        const h = `${o.order_number} ${o.client_name} ${o.location} ${o.description}`.toLowerCase();
+        return h.includes(search.toLowerCase());
+      });
+
+      this._pages = data.pages ?? 1;
+      this._page = data.page ?? page;
+
+      tbody.innerHTML = items.length ? items.map(o => this._row(o)).join('') :
+        '<tr><td colspan="9" class="no-data">Nenhuma ordem encontrada.</td></tr>';
+
+      document.getElementById('ord-pag').innerHTML = paginationHtml(this._page, this._pages, 'Orders.load');
+    } catch (e) { UI.error(e); tbody.innerHTML = '<tr><td colspan="9" class="no-data">Erro ao carregar.</td></tr>'; }
+  },
+
+  _row(o) {
+    const pBadge = badge(PRIO_BADGE[o.priority] ?? 'badge-muted', PRIO_LABELS[o.priority] ?? o.priority);
+    const sBadge = badge(STATUS_BADGE[o.status] ?? 'badge-muted', STATUS_LABELS[o.status] ?? o.status);
+    const asset = o.asset ? esc(o.asset.name) : '—';
+    const tech = o.assigned_technician ? esc(o.assigned_technician.name) : '—';
+
+    let actions = `<button class="btn btn-outline btn-sm" title="Ações" onclick="Orders.openActions(${o.id})"><i class="fas fa-cog"></i></button>`;
+    if (can('supervisor')) {
+      actions += `<button class="btn btn-outline btn-sm" title="Editar" onclick="Orders.openEdit(${o.id})"><i class="fas fa-edit"></i></button>`;
+    }
+    if (can('admin', 'supervisor')) {
+      actions += `<button class="btn btn-danger btn-sm" title="Excluir" onclick="Orders.delete(${o.id})"><i class="fas fa-trash"></i></button>`;
+    }
+
+    return `<tr>
+      <td><b>#${esc(o.order_number)}</b><div class="muted" style="font-size:.75rem">ID:${o.id}</div></td>
+      <td>${esc(o.client_name)}</td>
+      <td>${esc(o.location)}</td>
+      <td>${asset}</td>
+      <td>${tech}</td>
+      <td>${pBadge}</td>
+      <td>${sBadge}</td>
+      <td>${fmtMoney(o.total_cost)}</td>
+      <td><div class="table-actions">${actions}</div></td>
+    </tr>`;
+  },
+
+  applyFilter() { this.load(1); },
+
+  _buildForm(o = null) {
+    document.getElementById('modal-order-title').textContent = o ? `Editar OS #${o.order_number}` : 'Nova Ordem de Serviço';
+    document.getElementById('ord-client').value = o?.client_name ?? '';
+    document.getElementById('ord-loc').value    = o?.location ?? '';
+    document.getElementById('ord-desc').value   = o?.description ?? '';
+    document.getElementById('ord-prio').value   = o?.priority ?? 'medium';
+    document.getElementById('ord-start').value  = o?.start_date ?? '';
+
+    // Populate asset select
+    const sel = document.getElementById('ord-asset');
+    sel.innerHTML = '<option value="">Nenhum</option>' +
+      State.allAssets.map(a => `<option value="${a.id}" ${o?.asset?.id===a.id?'selected':''}>${esc(a.name)}</option>`).join('');
+    if (o?.asset?.id) sel.value = o.asset.id;
+  },
+
+  openCreate() {
+    State.editingOrderId = null;
+    this._buildForm();
+    UI.openModal('modal-order');
+  },
+
+  async openEdit(id) {
+    try {
+      const o = await api.get(`/orders/${id}`);
+      State.editingOrderId = id;
+      this._buildForm(o);
+      UI.openModal('modal-order');
+    } catch (e) { UI.error(e); }
+  },
+
+  async save() {
+    const client_name = document.getElementById('ord-client').value.trim();
+    const location    = document.getElementById('ord-loc').value.trim();
+    const description = document.getElementById('ord-desc').value.trim() || null;
+    const priority    = document.getElementById('ord-prio').value;
+    const start_date  = document.getElementById('ord-start').value || null;
+    const asset_id    = parseInt(document.getElementById('ord-asset').value) || null;
+
+    if (!client_name || !location) { UI.toast('Preencha nome do cliente e localização.', 'error'); return; }
+
+    const body = { client_name, location, description, priority, start_date, asset_id };
+    try {
+      if (State.editingOrderId) {
+        await api.put(`/orders/${State.editingOrderId}`, body);
+        UI.toast('OS atualizada com sucesso!', 'success');
+      } else {
+        await api.post('/orders', body);
+        UI.toast('OS criada com sucesso!', 'success');
+      }
+      UI.closeModal('modal-order');
+      this.load(this._page);
+    } catch (e) { UI.error(e); }
+  },
+
+  async delete(id) {
+    if (!confirm(`Excluir OS #${id}? Esta ação não pode ser desfeita.`)) return;
+    try {
+      await api.delete(`/orders/${id}`);
+      UI.toast('OS excluída.', 'success');
+      this.load(this._page);
+    } catch (e) { UI.error(e); }
+  },
+
+  async openActions(id) {
+    try {
+      const o = await api.get(`/orders/${id}`);
+      const oa = document.getElementById('oa-body');
+      document.getElementById('oa-title').textContent = `Ações — OS #${o.order_number}`;
+
+      let html = `<div class="info-box">
+        <b>${esc(o.client_name)}</b> • ${badge(STATUS_BADGE[o.status], STATUS_LABELS[o.status])} • ${badge(PRIO_BADGE[o.priority], PRIO_LABELS[o.priority])}
+        <br><span class="muted">Local: ${esc(o.location)}</span>
+        ${o.assigned_technician ? `<br><span class="muted">Técnico: ${esc(o.assigned_technician.name)}</span>` : ''}
+        <br><span class="muted">Custo total: ${fmtMoney(o.total_cost)}</span>
+      </div>`;
+
+      // Status transition
+      if (can('supervisor', 'technician')) {
+        html += `<div class="form-group"><label>Mudar Status</label>
+          <select id="oa-status" class="form-control">
+            <option value="">— Selecione —</option>
+            ${['open','in_progress','completed','cancelled']
+              .filter(s => s !== o.status)
+              .map(s => `<option value="${s}">${STATUS_LABELS[s]}</option>`).join('')}
+          </select></div>
+          <div class="form-group" id="oa-reason-wrap" style="display:none">
+            <label>Motivo do cancelamento *</label>
+            <textarea id="oa-reason" class="form-control" placeholder="Informe o motivo..."></textarea>
+          </div>`;
+      }
+
+      // Assign technician
+      if (can('supervisor')) {
+        const techs = State.allAssets; // we have all users fetched? no — let's use a simple input
+        html += `<div class="form-group" style="margin-top:12px"><label>Atribuir Técnico (ID)</label>
+          <div class="flex gap-8">
+            <input id="oa-tech-id" type="number" class="form-control" placeholder="ID do técnico" style="flex:1" value="${o.assigned_technician?.id ?? ''}">
+            <button class="btn btn-outline" onclick="Orders.assign(${o.id})">Atribuir</button>
+          </div></div>`;
+      }
+
+      // History link
+      if (can('admin', 'supervisor')) {
+        html += `<button class="btn btn-outline btn-sm mt-10" onclick="Orders.showHistory(${o.id})"><i class="fas fa-history"></i> Ver Histórico</button>`;
+      }
+
+      html += `<div class="modal-footer">
+        <button class="btn btn-outline" onclick="UI.closeModal('modal-order-actions')">Fechar</button>
+        ${can('supervisor','technician') ? `<button class="btn btn-primary" onclick="Orders.changeStatus(${o.id})">Aplicar Status</button>` : ''}
+      </div>`;
+
+      oa.innerHTML = html;
+
+      const statusSel = document.getElementById('oa-status');
+      if (statusSel) {
+        statusSel.addEventListener('change', () => {
+          const reasonWrap = document.getElementById('oa-reason-wrap');
+          if (reasonWrap) reasonWrap.style.display = statusSel.value === 'cancelled' ? 'block' : 'none';
+        });
+      }
+
+      UI.openModal('modal-order-actions');
+    } catch (e) { UI.error(e); }
+  },
+
+  async changeStatus(id) {
+    const status = document.getElementById('oa-status')?.value;
+    if (!status) { UI.toast('Selecione um status.', 'error'); return; }
+    const reason = document.getElementById('oa-reason')?.value?.trim() ?? null;
+    if (status === 'cancelled' && !reason) { UI.toast('Informe o motivo do cancelamento.', 'error'); return; }
+    try {
+      await api.patch(`/orders/${id}/status`, { status, reason });
+      UI.toast('Status atualizado!', 'success');
+      UI.closeModal('modal-order-actions');
+      this.load(this._page);
+    } catch (e) { UI.error(e); }
+  },
+
+  async assign(id) {
+    const techId = parseInt(document.getElementById('oa-tech-id')?.value);
+    if (!techId) { UI.toast('Informe o ID do técnico.', 'error'); return; }
+    try {
+      await api.patch(`/orders/${id}/assign`, { technician_id: techId });
+      UI.toast('Técnico atribuído!', 'success');
+      this.load(this._page);
+    } catch (e) { UI.error(e); }
+  },
+
+  async showHistory(id) {
+    try {
+      const history = await api.get(`/orders/${id}/history`);
+      const lines = (Array.isArray(history) ? history : []).map(h =>
+        `<div class="activity-item">
+          <b>${esc(h.changed_by ?? 'Sistema')}</b> — ${fmtDateTime(h.created_at)}
+          <br><span class="muted">${esc(h.action ?? '')}</span>
+          ${h.delta ? `<br><code style="font-size:.78rem;color:var(--secondary)">${esc(JSON.stringify(h.delta))}</code>` : ''}
+        </div>`
+      ).join('');
+      document.getElementById('oa-body').innerHTML = `<div style="max-height:350px;overflow-y:auto">${lines || '<p class="muted">Sem histórico.</p>'}</div>
+        <div class="modal-footer"><button class="btn btn-outline" onclick="UI.closeModal('modal-order-actions')">Fechar</button></div>`;
+    } catch (e) { UI.error(e); }
+  },
+};
+
+// ═══════════════════════════════════════════════════════════════════════════
+// ASSETS
+// ═══════════════════════════════════════════════════════════════════════════
+const Assets = {
+  _page: 1, _pages: 1,
+
+  async loadAll() {
+    try {
+      const data = await api.get('/assets?page=1&page_size=100');
+      State.allAssets = data.items ?? [];
+    } catch {}
+  },
+
+  async load(page = 1) {
+    this._page = page;
+    const search = document.getElementById('ast-search').value;
+    const status = document.getElementById('ast-status').value;
+
+    let qs = `?page=${page}&page_size=20`;
+    if (status) qs += `&status=${status}`;
+    if (search) qs += `&name=${encodeURIComponent(search)}`;
+
+    const tbody = document.getElementById('ast-list');
+    tbody.innerHTML = '<tr><td colspan="8" class="no-data">Carregando...</td></tr>';
+
+    try {
+      const data = await api.get('/assets' + qs);
+      this._pages = data.pages ?? 1;
+      this._page = data.page ?? page;
+      const items = data.items ?? [];
+
+      tbody.innerHTML = items.length ? items.map(a => this._row(a)).join('') :
+        '<tr><td colspan="8" class="no-data">Nenhum equipamento.</td></tr>';
+
+      document.getElementById('ast-pag').innerHTML = paginationHtml(this._page, this._pages, 'Assets.load');
+    } catch (e) { UI.error(e); tbody.innerHTML = '<tr><td colspan="8" class="no-data">Erro ao carregar.</td></tr>'; }
+  },
+
+  _row(a) {
+    const sBadge = badge(STATUS_BADGE[a.status] ?? 'badge-muted', STATUS_LABELS[a.status] ?? a.status);
+    let actions = '';
+    if (can('admin', 'supervisor')) {
+      actions += `<button class="btn btn-outline btn-sm" onclick="Assets.openEdit(${a.id})"><i class="fas fa-edit"></i></button>`;
+      const newStatus = a.status === 'active' ? 'inactive' : 'active';
+      const icon = a.status === 'active' ? 'fa-lock' : 'fa-lock-open';
+      actions += `<button class="btn btn-outline btn-sm" title="${newStatus}" onclick="Assets.toggleStatus(${a.id},'${newStatus}')"><i class="fas ${icon}"></i></button>`;
+    }
+    return `<tr>
+      <td>${a.id}</td>
+      <td><b>${esc(a.name)}</b></td>
+      <td>${esc(a.model ?? '—')}</td>
+      <td>${esc(a.manufacturer ?? '—')}</td>
+      <td><code style="font-size:.8rem">${esc(a.serial_number ?? '—')}</code></td>
+      <td>${esc(a.location ?? '—')}</td>
+      <td>${sBadge}</td>
+      <td><div class="table-actions">${actions}</div></td>
+    </tr>`;
+  },
+
+  applyFilter() { this.load(1); },
+
+  _fillForm(a = null) {
+    document.getElementById('modal-asset-title').textContent = a ? `Editar: ${a.name}` : 'Novo Equipamento';
+    document.getElementById('ast-name').value   = a?.name ?? '';
+    document.getElementById('ast-model').value  = a?.model ?? '';
+    document.getElementById('ast-mfr').value    = a?.manufacturer ?? '';
+    document.getElementById('ast-serial').value = a?.serial_number ?? '';
+    document.getElementById('ast-loc').value    = a?.location ?? '';
+  },
+
+  openCreate() { State.editingAssetId = null; this._fillForm(); UI.openModal('modal-asset'); },
+
+  async openEdit(id) {
+    try {
+      const a = await api.get(`/assets/${id}`);
+      State.editingAssetId = id;
+      this._fillForm(a);
+      UI.openModal('modal-asset');
+    } catch (e) { UI.error(e); }
+  },
+
+  async save() {
+    const name = document.getElementById('ast-name').value.trim();
+    if (!name) { UI.toast('Nome é obrigatório.', 'error'); return; }
+    const body = {
+      name,
+      model: document.getElementById('ast-model').value.trim() || null,
+      manufacturer: document.getElementById('ast-mfr').value.trim() || null,
+      serial_number: document.getElementById('ast-serial').value.trim() || null,
+      location: document.getElementById('ast-loc').value.trim() || null,
+    };
+    try {
+      if (State.editingAssetId) {
+        await api.put(`/assets/${State.editingAssetId}`, body);
+        UI.toast('Equipamento atualizado!', 'success');
+      } else {
+        await api.post('/assets', body);
+        UI.toast('Equipamento criado!', 'success');
+      }
+      UI.closeModal('modal-asset');
+      this.load(this._page);
+      await this.loadAll();
+    } catch (e) { UI.error(e); }
+  },
+
+  async toggleStatus(id, newStatus) {
+    try {
+      await api.patch(`/assets/${id}/status`, { status: newStatus });
+      UI.toast(`Equipamento ${STATUS_LABELS[newStatus]}!`, 'success');
+      this.load(this._page);
+    } catch (e) { UI.error(e); }
+  },
+};
+
+// ═══════════════════════════════════════════════════════════════════════════
+// INVENTORY
+// ═══════════════════════════════════════════════════════════════════════════
+const Inventory = {
+  _matPage: 1, _matPages: 1,
+  _movPage: 1, _movPages: 1,
+  _activeTab: 'materials',
+
+  async loadAllMaterials() {
+    try {
+      const data = await api.get('/materials?page=1&page_size=100');
+      State.allMaterials = data.items ?? [];
+      this._populateMatSelect();
+    } catch {}
+  },
+
+  _populateMatSelect() {
+    const sel = document.getElementById('mov-mat');
+    if (!sel) return;
+    sel.innerHTML = State.allMaterials.map(m => `<option value="${m.id}">${esc(m.name)} (SKU: ${esc(m.sku)})</option>`).join('');
+  },
+
+  showTab(tab, btn) {
+    this._activeTab = tab;
+    ['materials','movements','stock'].forEach(t => {
+      const el = document.getElementById('inv-' + t);
+      if (el) el.classList.toggle('hidden', t !== tab);
+    });
+    document.querySelectorAll('#mod-inventory > div:first-child button').forEach(b => {
+      b.classList.remove('btn-primary');
+      b.classList.add('btn-outline');
+    });
+    if (btn) { btn.classList.remove('btn-outline'); btn.classList.add('btn-primary'); }
+
+    if (tab === 'materials') this.loadMaterials(1);
+    else if (tab === 'movements') this.loadMovements(1);
+    else if (tab === 'stock') this.loadStockReport();
+  },
+
+  async loadMaterials(page = 1) {
+    this._matPage = page;
+    const search = document.getElementById('mat-search').value;
+    const status = document.getElementById('mat-status-filter').value;
+    let qs = `?page=${page}&page_size=20`;
+    if (status) qs += `&status=${status}`;
+
+    const tbody = document.getElementById('mat-list');
+    tbody.innerHTML = '<tr><td colspan="8" class="no-data">Carregando...</td></tr>';
+    try {
+      const data = await api.get('/materials' + qs);
+      this._matPages = data.pages ?? 1;
+      const items = (data.items ?? []).filter(m => {
+        if (!search) return true;
+        return `${m.name} ${m.sku}`.toLowerCase().includes(search.toLowerCase());
+      });
+      tbody.innerHTML = items.length ? items.map(m => this._matRow(m)).join('') :
+        '<tr><td colspan="8" class="no-data">Nenhum material.</td></tr>';
+      document.getElementById('mat-pag').innerHTML = paginationHtml(page, this._matPages, 'Inventory.loadMaterials');
+    } catch (e) { UI.error(e); }
+  },
+
+  _matRow(m) {
+    const low = parseFloat(m.quantity_in_stock) <= parseFloat(m.min_quantity);
+    const sBadge = badge(STATUS_BADGE[m.status] ?? 'badge-muted', STATUS_LABELS[m.status] ?? m.status);
+    let actions = '';
+    if (can('admin', 'supervisor')) {
+      actions += `<button class="btn btn-outline btn-sm" onclick="Inventory.openEditMaterial(${m.id})"><i class="fas fa-edit"></i></button>`;
+    }
+    if (can('admin')) {
+      const ns = m.status === 'active' ? 'inactive' : 'active';
+      actions += `<button class="btn btn-outline btn-sm" onclick="Inventory.toggleMatStatus(${m.id},'${ns}')"><i class="fas fa-${m.status==='active'?'lock':'lock-open'}"></i></button>`;
+    }
+    return `<tr class="${low ? 'low-stock' : ''}">
+      <td>${m.id}</td>
+      <td><b>${esc(m.name)}</b></td>
+      <td><code style="font-size:.8rem">${esc(m.sku)}</code></td>
+      <td style="${low ? 'color:var(--danger);font-weight:700' : ''}">${fmtNum(m.quantity_in_stock)}</td>
+      <td>${fmtNum(m.min_quantity)}</td>
+      <td>${fmtMoney(m.unit_price)}</td>
+      <td>${sBadge}</td>
+      <td><div class="table-actions">${actions}</div></td>
+    </tr>`;
+  },
+
+  applyFilter() { this.loadMaterials(1); },
+
+  openCreateMaterial() {
+    State.editingMaterialId = null;
+    document.getElementById('modal-mat-title').textContent = 'Novo Material';
+    ['mat-name','mat-sku'].forEach(id => document.getElementById(id).value = '');
+    document.getElementById('mat-price').value = '';
+    document.getElementById('mat-qty').value = '0';
+    document.getElementById('mat-min').value = '5';
+    UI.openModal('modal-material');
+  },
+
+  async openEditMaterial(id) {
+    try {
+      const m = await api.get(`/materials/${id}`);
+      State.editingMaterialId = id;
+      document.getElementById('modal-mat-title').textContent = `Editar: ${m.name}`;
+      document.getElementById('mat-name').value  = m.name;
+      document.getElementById('mat-sku').value   = m.sku;
+      document.getElementById('mat-price').value = m.unit_price;
+      document.getElementById('mat-qty').value   = m.quantity_in_stock;
+      document.getElementById('mat-min').value   = m.min_quantity;
+      UI.openModal('modal-material');
+    } catch (e) { UI.error(e); }
+  },
+
+  async saveMaterial() {
+    const name = document.getElementById('mat-name').value.trim();
+    const sku  = document.getElementById('mat-sku').value.trim();
+    const price = parseFloat(document.getElementById('mat-price').value);
+    const qty  = parseFloat(document.getElementById('mat-qty').value);
+    const min  = parseFloat(document.getElementById('mat-min').value);
+
+    if (!name || !sku || isNaN(price)) { UI.toast('Preencha os campos obrigatórios.', 'error'); return; }
+
+    try {
+      if (State.editingMaterialId) {
+        await api.put(`/materials/${State.editingMaterialId}`, { name, sku, unit_price: price, min_quantity: min });
+        UI.toast('Material atualizado!', 'success');
+      } else {
+        await api.post('/materials', { name, sku, unit_price: price, quantity_in_stock: qty, min_quantity: min });
+        UI.toast('Material criado!', 'success');
+      }
+      UI.closeModal('modal-material');
+      this.loadMaterials(this._matPage);
+      await this.loadAllMaterials();
+    } catch (e) { UI.error(e); }
+  },
+
+  async toggleMatStatus(id, newStatus) {
+    try {
+      await api.patch(`/materials/${id}/status`, { status: newStatus });
+      UI.toast(`Material ${STATUS_LABELS[newStatus]}!`, 'success');
+      this.loadMaterials(this._matPage);
+    } catch (e) { UI.error(e); }
+  },
+
+  async loadMovements(page = 1) {
+    this._movPage = page;
+    const tbody = document.getElementById('mov-list');
+    tbody.innerHTML = '<tr><td colspan="6" class="no-data">Carregando...</td></tr>';
+    try {
+      const data = await api.get(`/movements?page=${page}&page_size=20`);
+      this._movPages = data.pages ?? 1;
+      const items = data.items ?? [];
+      tbody.innerHTML = items.length ? items.map(m => `<tr>
+        <td>${m.id}</td>
+        <td>${esc(m.material_name ?? m.material_id)}</td>
+        <td>${badge(m.movement_type === 'in' ? 'badge-success' : 'badge-cancelled', m.movement_type === 'in' ? 'Entrada' : 'Saída')}</td>
+        <td><b>${fmtNum(m.quantity)}</b></td>
+        <td>${esc(m.notes ?? '—')}</td>
+        <td>${fmtDateTime(m.created_at)}</td>
+      </tr>`).join('') : '<tr><td colspan="6" class="no-data">Nenhuma movimentação.</td></tr>';
+      document.getElementById('mov-pag').innerHTML = paginationHtml(page, this._movPages, 'Inventory.loadMovements');
+    } catch (e) { UI.error(e); }
+  },
+
+  openCreateMovement() {
+    this._populateMatSelect();
+    document.getElementById('mov-qty').value  = '';
+    document.getElementById('mov-note').value = '';
+    document.getElementById('mov-type').value = 'in';
+    UI.openModal('modal-movement');
+  },
+
+  async saveMovement() {
+    const material_id = parseInt(document.getElementById('mov-mat').value);
+    const movement_type = document.getElementById('mov-type').value;
+    const quantity = parseFloat(document.getElementById('mov-qty').value);
+    const notes = document.getElementById('mov-note').value.trim() || null;
+
+    if (!material_id || isNaN(quantity) || quantity <= 0) { UI.toast('Preencha material e quantidade válida.', 'error'); return; }
+    try {
+      await api.post('/movements', { material_id, movement_type, quantity, notes });
+      UI.toast('Movimentação registrada!', 'success');
+      UI.closeModal('modal-movement');
+      await this.loadAllMaterials();
+      if (this._activeTab === 'movements') this.loadMovements(1);
+      else this.loadMaterials(this._matPage);
+    } catch (e) { UI.error(e); }
+  },
+
+  async loadStockReport() {
+    const tbody = document.getElementById('stock-list');
+    tbody.innerHTML = '<tr><td colspan="5" class="no-data">Carregando...</td></tr>';
+    try {
+      const items = await api.get('/stock/report');
+      tbody.innerHTML = (items ?? []).map(item => {
+        const low = parseFloat(item.quantity_in_stock) <= parseFloat(item.min_quantity);
+        return `<tr class="${low ? 'low-stock' : ''}">
+          <td><b>${esc(item.name)}</b></td>
+          <td><code style="font-size:.8rem">${esc(item.sku)}</code></td>
+          <td style="${low ? 'color:var(--danger);font-weight:700' : ''}">${fmtNum(item.quantity_in_stock)}</td>
+          <td>${fmtNum(item.min_quantity)}</td>
+          <td>${low ? badge('badge-urgent','Stock Baixo') : badge('badge-success','OK')}</td>
+        </tr>`;
+      }).join('') || '<tr><td colspan="5" class="no-data">Sem dados.</td></tr>';
+    } catch (e) { UI.error(e); }
+  },
+};
+
+// ═══════════════════════════════════════════════════════════════════════════
+// FINANCE
+// ═══════════════════════════════════════════════════════════════════════════
+const Finance = {
+  _costsPage: 1, _budsPage: 1,
+
+  showTab(tab, btn) {
+    ['costs','budgets','report'].forEach(t => {
+      const el = document.getElementById('fin-' + t);
+      if (el) el.classList.toggle('hidden', t !== tab);
+    });
+    document.querySelectorAll('#mod-finance > div:first-child button').forEach(b => {
+      b.classList.remove('btn-primary'); b.classList.add('btn-outline');
+    });
+    if (btn) { btn.classList.remove('btn-outline'); btn.classList.add('btn-primary'); }
+
+    if (tab === 'costs') this.loadCosts(1);
+    else if (tab === 'budgets') this.loadBudgets(1);
+    else if (tab === 'report') this.loadReport();
+  },
+
+  async loadCosts(page = 1) {
+    this._costsPage = page;
+    const orderId = document.getElementById('cost-order-id')?.value;
+    const type = document.getElementById('cost-type-filter')?.value;
+    let qs = `?page=${page}&page_size=20`;
+    if (orderId) qs += `&service_order_id=${orderId}`;
+    if (type) qs += `&cost_type=${type}`;
+
+    const tbody = document.getElementById('cost-list');
+    tbody.innerHTML = '<tr><td colspan="7" class="no-data">Carregando...</td></tr>';
+    try {
+      const data = await api.get('/costs' + qs);
+      this._costsPages = data.pages ?? 1;
+      const items = data.items ?? [];
+      tbody.innerHTML = items.length ? items.map(c => `<tr>
+        <td>${c.id}</td>
+        <td>#OS-${c.service_order_id}</td>
+        <td>${esc(c.description)}</td>
+        <td><span class="cost-type-label">${esc(c.cost_type)}</span></td>
+        <td><b>${fmtMoney(c.amount)}</b></td>
+        <td>${fmtDateTime(c.created_at)}</td>
+        <td><div class="table-actions">
+          <button class="btn btn-outline btn-sm" onclick="Finance.openEditCost(${c.id})"><i class="fas fa-edit"></i></button>
+          <button class="btn btn-danger btn-sm" onclick="Finance.deleteCost(${c.id})"><i class="fas fa-trash"></i></button>
+        </div></td>
+      </tr>`).join('') : '<tr><td colspan="7" class="no-data">Nenhum custo.</td></tr>';
+      document.getElementById('cost-pag').innerHTML = paginationHtml(page, this._costsPages ?? 1, 'Finance.loadCosts');
+    } catch (e) { UI.error(e); }
+  },
+
+  applyFilter() { this.loadCosts(1); },
+  applyBudgetFilter() { this.loadBudgets(1); },
+
+  async _loadOrdersSelect(selectId, required) {
+    const sel = document.getElementById(selectId);
+    sel.innerHTML = '<option value="">Carregando...</option>';
+    try {
+      const data = await api.get('/orders?page=1&page_size=100');
+      const orders = (data.items ?? []).filter(o => o.status === 'open' || o.status === 'in_progress');
+      sel.innerHTML = required ? '<option value="">Selecione uma OS...</option>' : '<option value="">Nenhuma (opcional)</option>';
+      orders.forEach(o => {
+        const opt = document.createElement('option');
+        opt.value = o.id;
+        opt.textContent = `#${o.order_number} — ${o.client_name}`;
+        sel.appendChild(opt);
+      });
+    } catch {
+      sel.innerHTML = required ? '<option value="">Erro ao carregar OS</option>' : '<option value="">Nenhuma (opcional)</option>';
+    }
+  },
+
+  async openCreateCost() {
+    State.editingCostId = null;
+    document.getElementById('modal-cost-title').textContent = 'Registrar Custo';
+    ['cost-desc','cost-amount'].forEach(id => document.getElementById(id).value = '');
+    document.getElementById('cost-type').value = 'other';
+    await this._loadOrdersSelect('cost-ord-id', true);
+    UI.openModal('modal-cost');
+  },
+
+  async openEditCost(id) {
+    try {
+      const data = await api.get(`/costs?page=1&page_size=100`);
+      const c = (data.items ?? []).find(x => x.id === id);
+      if (!c) { UI.toast('Custo não encontrado.', 'error'); return; }
+      State.editingCostId = id;
+      document.getElementById('modal-cost-title').textContent = 'Editar Custo';
+      await this._loadOrdersSelect('cost-ord-id', true);
+      document.getElementById('cost-ord-id').value = c.service_order_id;
+      document.getElementById('cost-desc').value   = c.description;
+      document.getElementById('cost-type').value   = c.cost_type;
+      document.getElementById('cost-amount').value = c.amount;
+      UI.openModal('modal-cost');
+    } catch (e) { UI.error(e); }
+  },
+
+  async saveCost() {
+    const service_order_id = parseInt(document.getElementById('cost-ord-id').value);
+    const description = document.getElementById('cost-desc').value.trim();
+    const cost_type = document.getElementById('cost-type').value;
+    const amount = parseFloat(document.getElementById('cost-amount').value);
+
+    if (!service_order_id || !description || isNaN(amount) || amount < 0) {
+      UI.toast('Preencha todos os campos.', 'error'); return;
+    }
+    try {
+      if (State.editingCostId) {
+        await api.put(`/costs/${State.editingCostId}`, { description, amount, cost_type });
+      } else {
+        await api.post('/costs', { service_order_id, description, amount, cost_type });
+      }
+      UI.toast(State.editingCostId ? 'Custo atualizado!' : 'Custo registrado!', 'success');
+      UI.closeModal('modal-cost');
+      this.loadCosts(this._costsPage);
+    } catch (e) { UI.error(e); }
+  },
+
+  async deleteCost(id) {
+    if (!confirm('Excluir este custo?')) return;
+    try {
+      await api.delete(`/costs/${id}`);
+      UI.toast('Custo excluído.', 'success');
+      this.loadCosts(this._costsPage);
+    } catch (e) { UI.error(e); }
+  },
+
+  async loadBudgets(page = 1) {
+    this._budsPage = page;
+    const status = document.getElementById('bud-status-filter')?.value;
+    let qs = `?page=${page}&page_size=20`;
+    if (status) qs += `&status=${status}`;
+
+    const tbody = document.getElementById('bud-list');
+    tbody.innerHTML = '<tr><td colspan="7" class="no-data">Carregando...</td></tr>';
+    try {
+      const data = await api.get('/budgets' + qs);
+      this._budsPages = data.pages ?? 1;
+      const items = data.items ?? [];
+      tbody.innerHTML = items.length ? items.map(b => `<tr>
+        <td>#${b.budget_number}</td>
+        <td>${esc(b.client_name)}</td>
+        <td>${b.service_order_id ? `#OS-${b.service_order_id}` : '—'}</td>
+        <td><b>${fmtMoney(b.total_amount)}</b></td>
+        <td>${badge(STATUS_BADGE[b.status] ?? 'badge-muted', STATUS_LABELS[b.status] ?? b.status)}</td>
+        <td>${fmtDate(b.valid_until)}</td>
+        <td><div class="table-actions">
+          <button class="btn btn-outline btn-sm" onclick="Finance.viewBudget(${b.id})"><i class="fas fa-eye"></i></button>
+          ${b.status === 'draft' ? `<button class="btn btn-danger btn-sm" onclick="Finance.deleteBudget(${b.id})"><i class="fas fa-trash"></i></button>` : ''}
+        </div></td>
+      </tr>`).join('') : '<tr><td colspan="7" class="no-data">Nenhum orçamento.</td></tr>';
+      document.getElementById('bud-pag').innerHTML = paginationHtml(page, this._budsPages ?? 1, 'Finance.loadBudgets');
+    } catch (e) { UI.error(e); }
+  },
+
+  async openCreateBudget() {
+    ['bud-client','bud-desc','bud-valid'].forEach(id => document.getElementById(id).value = '');
+    document.getElementById('modal-bud-title').textContent = 'Novo Orçamento';
+    await this._loadOrdersSelect('bud-ord', false);
+    UI.openModal('modal-budget');
+  },
+
+  async saveBudget() {
+    const client_name = document.getElementById('bud-client').value.trim();
+    const description = document.getElementById('bud-desc').value.trim() || null;
+    const valid_until = document.getElementById('bud-valid').value || null;
+    const service_order_id = parseInt(document.getElementById('bud-ord').value) || null;
+
+    if (!client_name) { UI.toast('Nome do cliente é obrigatório.', 'error'); return; }
+    try {
+      await api.post('/budgets', { client_name, description, valid_until, service_order_id });
+      UI.toast('Orçamento criado!', 'success');
+      UI.closeModal('modal-budget');
+      this.loadBudgets(this._budsPage);
+    } catch (e) { UI.error(e); }
+  },
+
+  async viewBudget(id) {
+    try {
+      const b = await api.get(`/budgets/${id}`);
+      const items = (b.items ?? []).map(i =>
+        `<tr><td>${esc(i.description)}</td><td>${fmtNum(i.quantity,3)}</td><td>${fmtMoney(i.unit_price)}</td><td>${fmtMoney(parseFloat(i.quantity)*parseFloat(i.unit_price))}</td></tr>`
+      ).join('');
+      const html = `
+        <div class="info-box">
+          <b>#${b.budget_number}</b> — ${esc(b.client_name)}<br>
+          ${badge(STATUS_BADGE[b.status]??'badge-muted', STATUS_LABELS[b.status]??b.status)} &nbsp; Total: <b>${fmtMoney(b.total_amount)}</b>
+          ${b.valid_until ? `<br>Validade: ${fmtDate(b.valid_until)}` : ''}
+          ${b.description ? `<br>${esc(b.description)}` : ''}
+        </div>
+        <table><thead><tr><th>Descrição</th><th>Qtd</th><th>Preço Unit.</th><th>Subtotal</th></tr></thead>
+        <tbody>${items || '<tr><td colspan="4" class="muted">Sem itens.</td></tr>'}</tbody></table>
+        <div class="modal-footer"><button class="btn btn-outline" onclick="UI.closeModal('modal-order-actions')">Fechar</button></div>`;
+      document.getElementById('oa-title').textContent = `Orçamento #${b.budget_number}`;
+      document.getElementById('oa-body').innerHTML = html;
+      UI.openModal('modal-order-actions');
+    } catch (e) { UI.error(e); }
+  },
+
+  async deleteBudget(id) {
+    if (!confirm('Excluir este orçamento?')) return;
+    try {
+      await api.delete(`/budgets/${id}`);
+      UI.toast('Orçamento excluído.', 'success');
+      this.loadBudgets(this._budsPage);
+    } catch (e) { UI.error(e); }
+  },
+
+  async loadReport() {
+    try {
+      const r = await api.get('/reports/financial');
+      document.getElementById('rep-total').textContent = fmtMoney(r.total_costs);
+      document.getElementById('rep-avg').textContent   = fmtMoney(r.avg_cost_per_order);
+      document.getElementById('rep-count').textContent = r.orders_count;
+
+      const tbody = document.getElementById('rep-type-list');
+      tbody.innerHTML = Object.entries(r.costs_by_type ?? {}).map(([type, val]) =>
+        `<tr><td><span class="cost-type-label">${esc(type)}</span></td><td><b>${fmtMoney(val)}</b></td></tr>`
+      ).join('') || '<tr><td colspan="2" class="muted">Sem dados.</td></tr>';
+    } catch (e) { UI.error(e); }
+  },
+};
+
+// ═══════════════════════════════════════════════════════════════════════════
+// USERS
+// ═══════════════════════════════════════════════════════════════════════════
+const Users = {
+  _page: 1, _pages: 1,
+
+  async load(page = 1) {
+    this._page = page;
+    const name = document.getElementById('usr-search').value;
+    const userRole = document.getElementById('usr-role-filter').value;
+    const status = document.getElementById('usr-status-filter').value;
+    let qs = `?page=${page}&page_size=20`;
+    if (name) qs += `&name=${encodeURIComponent(name)}`;
+    if (userRole) qs += `&role=${userRole}`;
+    if (status) qs += `&status=${status}`;
+
+    const tbody = document.getElementById('usr-list');
+    tbody.innerHTML = '<tr><td colspan="8" class="no-data">Carregando...</td></tr>';
+    try {
+      const data = await api.get('/users' + qs);
+      this._pages = data.pages ?? 1;
+      const items = data.items ?? [];
+      tbody.innerHTML = items.length ? items.map(u => this._row(u)).join('') :
+        '<tr><td colspan="8" class="no-data">Nenhum usuário.</td></tr>';
+      document.getElementById('usr-pag').innerHTML = paginationHtml(page, this._pages, 'Users.load');
+    } catch (e) { UI.error(e); tbody.innerHTML = '<tr><td colspan="8" class="no-data">Sem permissão ou erro.</td></tr>'; }
+  },
+
+  _row(u) {
+    const rBadge = badge(ROLE_BADGE[u.role] ?? 'badge-muted', ROLE_LABELS[u.role] ?? u.role);
+    const sBadge = badge(STATUS_BADGE[u.status] ?? 'badge-muted', STATUS_LABELS[u.status] ?? u.status);
+    const ns = u.status === 'active' ? 'inactive' : 'active';
+    return `<tr>
+      <td>${u.id}</td>
+      <td><b>${esc(u.name)}</b></td>
+      <td><code style="font-size:.8rem">${esc(u.login)}</code></td>
+      <td style="font-size:.82rem">${esc(u.email)}</td>
+      <td>${rBadge}</td>
+      <td>${sBadge}</td>
+      <td style="font-size:.8rem">${fmtDateTime(u.created_at)}</td>
+      <td><div class="table-actions">
+        <button class="btn btn-outline btn-sm" onclick="Users.openEdit(${u.id})"><i class="fas fa-edit"></i></button>
+        <button class="btn btn-outline btn-sm" title="${ns}" onclick="Users.toggleStatus(${u.id},'${ns}')"><i class="fas fa-${u.status==='active'?'lock':'lock-open'}"></i></button>
+      </div></td>
+    </tr>`;
+  },
+
+  applyFilter() { this.load(1); },
+
+  openCreate() {
+    State.editingUserId = null;
+    document.getElementById('modal-usr-title').textContent = 'Novo Usuário';
+    ['usr-name','usr-login','usr-email','usr-pass'].forEach(id => document.getElementById(id).value = '');
+    document.getElementById('usr-role').value = 'technician';
+    UI.openModal('modal-user');
+  },
+
+  async openEdit(id) {
+    try {
+      const u = await api.get(`/users/${id}`);
+      State.editingUserId = id;
+      document.getElementById('modal-usr-title').textContent = `Editar: ${u.name}`;
+      document.getElementById('usr-name').value  = u.name;
+      document.getElementById('usr-login').value = u.login;
+      document.getElementById('usr-email').value = u.email;
+      document.getElementById('usr-pass').value  = '';
+      document.getElementById('usr-role').value  = u.role;
+      UI.openModal('modal-user');
+    } catch (e) { UI.error(e); }
+  },
+
+  async save() {
+    const name  = document.getElementById('usr-name').value.trim();
+    const login = document.getElementById('usr-login').value.trim();
+    const email = document.getElementById('usr-email').value.trim();
+    const password = document.getElementById('usr-pass').value;
+    const userRole = document.getElementById('usr-role').value;
+
+    if (!name || !login || !email || (!State.editingUserId && !password)) {
+      UI.toast('Preencha todos os campos.', 'error'); return;
+    }
+    try {
+      if (State.editingUserId) {
+        const body = { name, email, role: userRole };
+        await api.put(`/users/${State.editingUserId}`, body);
+        UI.toast('Usuário atualizado!', 'success');
+      } else {
+        await api.post('/users', { name, login, email, password, role: userRole });
+        UI.toast('Usuário criado!', 'success');
+      }
+      UI.closeModal('modal-user');
+      this.load(this._page);
+    } catch (e) { UI.error(e); }
+  },
+
+  async toggleStatus(id, newStatus) {
+    try {
+      await api.patch(`/users/${id}/status`, { status: newStatus });
+      UI.toast(`Usuário ${STATUS_LABELS[newStatus]}!`, 'success');
+      this.load(this._page);
+    } catch (e) { UI.error(e); }
+  },
+};
+
+// ═══════════════════════════════════════════════════════════════════════════
+// NOTIFICATIONS
+// ═══════════════════════════════════════════════════════════════════════════
+const Notifications = {
+  _page: 1, _pages: 1,
+  _ws: null,
+
+  async load(page = 1) {
+    this._page = page;
+    const el = document.getElementById('notif-list');
+    el.innerHTML = '<p class="muted">Carregando...</p>';
+    try {
+      const data = await api.get(`/notifications?page=${page}&page_size=20`);
+      this._pages = data.pages ?? 1;
+      const items = data.items ?? [];
+      el.innerHTML = items.length ? items.map(n => `
+        <div style="background:white;border-radius:var(--radius);padding:16px;box-shadow:var(--shadow);border-left:4px solid ${n.read ? 'var(--border)' : 'var(--accent)'}">
+          ${n.title ? `<div style="font-size:.75rem;color:var(--secondary);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">${esc(n.title)}</div>` : ''}
+          <div style="font-weight:${n.read ? 400 : 700};margin-bottom:4px">${esc(n.message ?? '')}</div>
+          <div class="muted">${fmtDateTime(n.created_at)}</div>
+          ${!n.read ? `<button class="btn btn-outline btn-sm mt-10" onclick="Notifications.markRead(${n.id},this)">Marcar como lida</button>` : ''}
+        </div>
+      `).join('') : '<p class="muted">Sem notificações.</p>';
+      document.getElementById('notif-pag').innerHTML = paginationHtml(page, this._pages, 'Notifications.load');
+    } catch (e) { UI.error(e); }
+  },
+
+  async loadCount() {
+    try {
+      const data = await api.get('/notifications?page=1&page_size=100');
+      const unread = (data.items ?? []).filter(n => !n.read).length;
+      const badge = document.getElementById('notif-badge');
+      if (unread > 0) { badge.textContent = unread; badge.classList.remove('hidden'); }
+      else badge.classList.add('hidden');
+    } catch {}
+  },
+
+  async markRead(id, btn) {
+    try {
+      await api.patch(`/notifications/${id}/read`, {});
+      if (btn) { btn.closest('div[style]').style.borderLeftColor = 'var(--border)'; btn.remove(); }
+      await this.loadCount();
+    } catch (e) { UI.error(e); }
+  },
+
+  async markAllRead() {
+    try {
+      const data = await api.get('/notifications?page=1&page_size=100');
+      const unread = (data.items ?? []).filter(n => !n.read);
+      await Promise.all(unread.map(n => api.patch(`/notifications/${n.id}/read`, {})));
+      UI.toast('Todas as notificações marcadas como lidas.', 'success');
+      this.load(1);
+      await this.loadCount();
+    } catch (e) { UI.error(e); }
+  },
+
+  connectWS() {
+    if (!State.accessToken) return;
+    const wsUrl = `ws://localhost/api/v1/notifications/ws?token=${State.accessToken}`;
+    try {
+      this._ws = new WebSocket(wsUrl);
+      this._ws.onmessage = () => { this.loadCount(); };
+      this._ws.onerror = () => {};
+      this._ws.onclose = () => {};
+    } catch {}
+  },
+};
+
+// ═══════════════════════════════════════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════════════════════════════════════
+document.addEventListener('DOMContentLoaded', () => {
+  // Enter on login
+  ['inp-login', 'inp-pass'].forEach(id => {
+    document.getElementById(id)?.addEventListener('keydown', e => {
+      if (e.key === 'Enter') Auth.login();
+    });
+  });
+
+  // Escape closes modals
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape') {
+      ['modal-order','modal-order-actions','modal-asset','modal-material',
+       'modal-movement','modal-cost','modal-budget','modal-user'].forEach(id => UI.closeModal(id));
+    }
+  });
+});
+</script>
+</body>
+</html>

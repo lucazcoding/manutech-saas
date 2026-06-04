@@ -43,7 +43,7 @@ def main():
                 f.write(content)
             root_env['POSTGRES_PASSWORD'] = postgres_pass
 
-        local_db_url = f'postgresql+asyncpg://postgres:{postgres_pass}@db:5432/manutech'
+        local_db_url = f'postgresql+psycopg://postgres:{postgres_pass}@db:5432/manutech'
         root_env['DATABASE_URL'] = local_db_url
         
         # Also update root .env DATABASE_URL to point to local
@@ -74,7 +74,7 @@ def main():
                 if key == 'DATABASE_URL':
                     if mode == 'local':
                         password = root_env.get('POSTGRES_PASSWORD', '')
-                        val = f'postgresql+asyncpg://postgres:{password}@db:5432/manutech'
+                        val = f'postgresql+psycopg://postgres:{password}@db:5432/manutech'
                     else:
                         # For Supabase, use the Supabase URL from root_env
                         val = root_env.get('DATABASE_URL', '')
