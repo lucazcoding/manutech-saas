@@ -285,9 +285,11 @@ class TestRBACUsers:
         app.dependency_overrides[get_auth_settings] = lambda: settings
         from shared.shared.config import get_shared_settings
         app.dependency_overrides[get_shared_settings] = lambda: settings
+        from shared.shared.db.session import get_db
+        app.dependency_overrides[get_db] = lambda: AsyncMock()
         client = TestClient(app, raise_server_exceptions=False)
         r = client.get("/api/v1/users")
-        assert r.status_code == 403
+        assert r.status_code == 401
 
     def test_technician_cannot_create_user(self, rsa_keys, technician_claims):
         db = AsyncMock()

@@ -1,6 +1,6 @@
-"""
+﻿"""
 Fixtures para testes do Auth Service.
-Usa TestClient síncrono (sem banco real) para testes unitários com mocks.
+Usa TestClient sÃ­ncrono (sem banco real) para testes unitÃ¡rios com mocks.
 """
 
 import pytest
@@ -21,7 +21,7 @@ def make_auth_settings(rsa_keys: dict) -> AuthSettings:
     return AuthSettings(
         jwt_public_key=rsa_keys["public"],
         jwt_private_key=rsa_keys["private"],
-        database_url="postgresql+asyncpg://x:x@localhost/x",
+        database_url="postgresql+psycopg://x:x@localhost/x",
     )
 
 

@@ -12,6 +12,12 @@ Isolamento:
 Para pular: pytest -m "not e2e"
 """
 
+import asyncio
+import sys
+
+if sys.platform == "win32":
+    asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
+
 import os
 from pathlib import Path
 
@@ -46,7 +52,7 @@ class _EnvSettings(BaseSettings):
         env_file=_env_files,
         extra="ignore",
     )
-    database_url: str = "postgresql+asyncpg://postgres:postgres@localhost:5432/manutech_test"
+    database_url: str = "postgresql+psycopg://postgres:postgres@localhost:5433/manutech"
     redis_url: str = "redis://localhost:6379/0"
 
 
@@ -67,7 +73,7 @@ TEST_REDIS_URL = _env.redis_url.strip()
 
 _is_supabase = "supabase.com" in TEST_DATABASE_URL or "supabase.co" in TEST_DATABASE_URL
 _connect_args: dict = (
-    {"ssl": "require", "prepared_statement_cache_size": 0, "statement_cache_size": 0}
+    {"sslmode": "require", "prepare_threshold": None}
     if _is_supabase
     else {}
 )

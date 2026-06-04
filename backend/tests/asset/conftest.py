@@ -1,4 +1,4 @@
-import pytest
+﻿import pytest
 from unittest.mock import AsyncMock, MagicMock
 from fastapi.testclient import TestClient
 
@@ -12,7 +12,7 @@ from services.asset.main import create_app
 def make_settings(rsa_keys: dict) -> SharedSettings:
     return SharedSettings(
         jwt_public_key=rsa_keys["public"],
-        database_url="postgresql+asyncpg://x:x@localhost/x",
+        database_url="postgresql+psycopg://x:x@localhost/x",
     )
 
 

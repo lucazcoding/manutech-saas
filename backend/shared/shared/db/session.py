@@ -16,7 +16,7 @@ def _get_engine():
         # Supabase session pooler não suporta named prepared statements
         _is_pooler = "pooler.supabase.com" in settings.database_url
         connect_args = (
-            {"ssl": "require", "prepared_statement_cache_size": 0, "statement_cache_size": 0}
+            {"sslmode": "require", "prepare_threshold": None}
             if _is_pooler
             else {}
         )

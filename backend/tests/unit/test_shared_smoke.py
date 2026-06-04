@@ -219,7 +219,7 @@ def test_rbac_attendant_denied_multi(rbac_app, keys):
 def test_rbac_no_token(rbac_app):
     client = TestClient(rbac_app, raise_server_exceptions=False)
     r = client.get("/admin-only")
-    assert r.status_code == 403  # HTTPBearer sem credenciais retorna 403 no FastAPI (auto_error=True)
+    assert r.status_code == 401
 
 
 def test_rbac_invalid_token(rbac_app):

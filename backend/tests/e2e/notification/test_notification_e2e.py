@@ -130,45 +130,49 @@ async def test_mark_notification_not_found_404(notification_client_admin):
 
 def _make_sync_ws_app(rsa_keys):
     """Cria app síncrona para testes WebSocket com TestClient."""
-    from shared.shared.config import SharedSettings
+    from services.notification.config import NotificationSettings
 
     app = create_app()
-    settings = SharedSettings(
+    settings = NotificationSettings(
         jwt_public_key=rsa_keys["public"], database_url=TEST_DATABASE_URL
     )
     app.dependency_overrides[get_shared_settings] = lambda: settings
-    return app
+    app.dependency_overrides[get_db] = lambda: None
+    return app, settings
 
 
 def test_websocket_no_token_closes_4001(rsa_keys):
     """WebSocket sem token retorna close code 4001."""
-    app = _make_sync_ws_app(rsa_keys)
-    with patch("services.notification.main.start_subscriber", side_effect=_noop_subscriber):
-        with TestClient(app, raise_server_exceptions=False) as client:
-            with pytest.raises(Exception):
-                with client.websocket_connect("/api/v1/notifications/ws") as ws:
-                    ws.receive_text()
+    app, settings = _make_sync_ws_app(rsa_keys)
+    with patch("services.notification.main.get_notification_settings", return_value=settings):
+        with patch("services.notification.main.start_subscriber", side_effect=_noop_subscriber):
+            with TestClient(app, raise_server_exceptions=False) as client:
+                with pytest.raises(Exception):
+                    with client.websocket_connect("/api/v1/notifications/ws") as ws:
+                        ws.receive_text()
 
 
 def test_websocket_invalid_token_closes_4001(rsa_keys):
     """WebSocket com token inválido retorna close code 4001."""
-    app = _make_sync_ws_app(rsa_keys)
-    with patch("services.notification.main.start_subscriber", side_effect=_noop_subscriber):
-        with TestClient(app, raise_server_exceptions=False) as client:
-            with pytest.raises(Exception):
-                with client.websocket_connect(
-                    "/api/v1/notifications/ws?token=invalid.jwt.token"
-                ) as ws:
-                    ws.receive_text()
+    app, settings = _make_sync_ws_app(rsa_keys)
+    with patch("services.notification.main.get_notification_settings", return_value=settings):
+        with patch("services.notification.main.start_subscriber", side_effect=_noop_subscriber):
+            with TestClient(app, raise_server_exceptions=False) as client:
+                with pytest.raises(Exception):
+                    with client.websocket_connect(
+                        "/api/v1/notifications/ws?token=invalid.jwt.token"
+                    ) as ws:
+                        ws.receive_text()
 
 
 def test_websocket_valid_token_connects(rsa_keys, admin_token):
     """WebSocket com token válido conecta com sucesso."""
-    app = _make_sync_ws_app(rsa_keys)
-    with patch("services.notification.main.start_subscriber", side_effect=_noop_subscriber):
-        with TestClient(app, raise_server_exceptions=False) as client:
-            with client.websocket_connect(
-                f"/api/v1/notifications/ws?token={admin_token}"
-            ) as ws:
-                # Conexão estabelecida com sucesso — fecha normalmente
-                ws.close()
+    app, settings = _make_sync_ws_app(rsa_keys)
+    with patch("services.notification.main.get_notification_settings", return_value=settings):
+        with patch("services.notification.main.start_subscriber", side_effect=_noop_subscriber):
+            with TestClient(app, raise_server_exceptions=False) as client:
+                with client.websocket_connect(
+                    f"/api/v1/notifications/ws?token={admin_token}"
+                ) as ws:
+                    # Conexão estabelecida com sucesso — fecha normalmente
+                    ws.close()

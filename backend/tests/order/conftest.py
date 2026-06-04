@@ -1,4 +1,4 @@
-import pytest
+﻿import pytest
 import fakeredis.aioredis as aioredis
 from unittest.mock import AsyncMock, MagicMock
 from fastapi.testclient import TestClient
@@ -30,7 +30,7 @@ class MockStorage(StorageBackend):
 def make_settings(rsa_keys: dict) -> OrderSettings:
     return OrderSettings(
         jwt_public_key=rsa_keys["public"],
-        database_url="postgresql+asyncpg://x:x@localhost/x",
+        database_url="postgresql+psycopg://x:x@localhost/x",
         stats_cache_ttl_seconds=30,
     )
 
