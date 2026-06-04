@@ -85,7 +85,7 @@ async def start_subscriber(
 ) -> None:
     while True:
         try:
-            client = aioredis.from_url(redis_url, decode_responses=True)
+            client = aioredis.from_url(redis_url, decode_responses=True, health_check_interval=30)
             pubsub = client.pubsub()
             await pubsub.subscribe(*_CHANNELS)
             logger.info("Redis subscriber connected — channels: %s", _CHANNELS)

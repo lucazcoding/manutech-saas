@@ -143,6 +143,7 @@ async def redis_client():
         TEST_REDIS_URL,
         encoding="utf-8",
         decode_responses=True,
+        health_check_interval=30,
     )
     try:
         yield client

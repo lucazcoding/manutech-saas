@@ -49,7 +49,7 @@ services:
     build:
       context: .
       dockerfile: services/auth/Dockerfile
-    env_file: services/auth/.env
+    env_file: .env
     ports:
       - "8001:8001"
     depends_on:
@@ -70,7 +70,7 @@ services:
     build:
       context: .
       dockerfile: services/asset/Dockerfile
-    env_file: services/asset/.env
+    env_file: .env
     ports:
       - "8002:8002"
     depends_on:
@@ -89,7 +89,7 @@ services:
     build:
       context: .
       dockerfile: services/order/Dockerfile
-    env_file: services/order/.env
+    env_file: .env
     ports:
       - "8003:8003"
     depends_on:
@@ -110,7 +110,7 @@ services:
     build:
       context: .
       dockerfile: services/inventory/Dockerfile
-    env_file: services/inventory/.env
+    env_file: .env
     ports:
       - "8004:8004"
     depends_on:
@@ -131,7 +131,7 @@ services:
     build:
       context: .
       dockerfile: services/finance/Dockerfile
-    env_file: services/finance/.env
+    env_file: .env
     ports:
       - "8005:8005"
     depends_on:
@@ -150,7 +150,7 @@ services:
     build:
       context: .
       dockerfile: services/notification/Dockerfile
-    env_file: services/notification/.env
+    env_file: .env
     ports:
       - "8006:8006"
     depends_on:
