@@ -168,25 +168,80 @@ backend/
 
 O Docker Compose está configurado para levantar toda a infraestrutura física (Banco, Redis, Gateway) e todos os 6 serviços da aplicação automaticamente. As migrações do Alembic rodam sozinhas no início do processo.
 
-1. Copie o arquivo de variáveis de ambiente:
+#### Passo a passo
+
+1. **Copie o arquivo de variáveis de ambiente:**
    ```powershell
    cp .env.example .env
    ```
-2. Inicie o Docker Compose:
+
+2. **Suba toda a stack (banco, redis, gateway e os 6 microsserviços):**
    ```powershell
    docker compose up --build -d
    ```
-3. Verifique se os serviços estão saudáveis:
+   Esse comando:
+   - Constrói as imagens de todos os serviços na primeira vez.
+   - Sobe o PostgreSQL, o Redis e o Nginx.
+   - Roda as migrações do Alembic automaticamente.
+   - Sobe os 6 microsserviços (`auth`, `asset`, `order`, `inventory`, `finance`, `notification`).
+
+3. **Aguarde todos os containers ficarem saudáveis:**
    ```powershell
    docker compose ps
    ```
+   A coluna `STATUS` deve mostrar `Up (healthy)` para `db`, `redis` e os 6 microsserviços. Se algum estiver `Up` sem `(healthy)`, espere mais alguns segundos e rode de novo.
 
-A partir deste momento, todos os serviços estão disponíveis de forma centralizada através da porta `80`:
+4. **Popule o banco com o usuário admin padrão (seed):**
+   O `seed_admin.py` **não é copiado automaticamente** para dentro do container do Auth Service (ele está apenas na raiz do projeto). Por isso, depois que a stack estiver de pé, copie o script para dentro do container e execute-o:
+   ```powershell
+   docker cp seed_admin.py backend-auth-1:/app/seed_admin.py
+   docker exec backend-auth-1 python /app/seed_admin.py
+   ```
+   Saída esperada:
+   ```
+   Usuario 'admin' criado com sucesso.
+   Login: admin
+   Senha: admin123
+   ```
+   > O script é idempotente: se você rodá-lo de novo, ele apenas atualiza o hash da senha do admin ao invés de criar duplicado.
+
+5. **Acesse a aplicação pelo navegador:**
+   Abra no navegador:
+   ```
+   http://localhost/
+   ```
+
+   > [!IMPORTANT]
+   > **Acesse `http://localhost/` — NÃO abra o arquivo HTML direto no navegador (ex: duplo clique em `tests/frontend/index.html`).**
+   >
+   > O frontend de teste **tem que** ser servido pelo Nginx que está rodando no Docker, porque:
+   > - O `index.html` faz requisições para `http://localhost/api/v1/...`. Se você abrir o arquivo direto pelo `file://`, o navegador vai bloquear essas chamadas por **CORS** (a origem `file://` não tem permissão para chamar `http://localhost`).
+   > - O Nginx também já está configurado com a rota `/` servindo o frontend e aplicando `try_files` para SPAs, então tudo funciona no mesmo host (`localhost:80`) sem conflito de porta.
+   >
+   > **Regra de ouro:** frontend em `http://localhost/` (porta 80, via Nginx). Não use nenhuma outra porta (ex: `http://localhost:8001`, `http://localhost:5500`, `file:///...`) para evitar bloqueio de CORS.
+
+6. **Faça login com as credenciais padrão:**
+   - **Login:** `admin`
+   - **Senha:** `admin123`
+
+#### Endpoints disponíveis via API Gateway (porta 80)
+
+A partir deste momento, todos os serviços estão disponíveis de forma centralizada através do Nginx em `http://localhost/`:
 - **API Gateway (Nginx):** `http://localhost/`
+- **Frontend de teste (SPA):** `http://localhost/`
 - **Exemplo de endpoints expostos:**
   - Login: `POST http://localhost/api/v1/auth/login`
   - Listar Ativos: `GET http://localhost/api/v1/assets`
   - Criar OS: `POST http://localhost/api/v1/orders`
+
+#### Possíveis problemas e soluções rápidas
+
+| Sintoma | Causa provável | Solução |
+|---|---|---|
+| `502 Bad Gateway` ao logar | Nginx cacheou IP errado de um container reiniciado | `docker restart backend-nginx-1` |
+| `Login ou senha incorretos` mesmo com `admin/admin123` | Você esqueceu de rodar o seed (passo 4) | Rode os dois comandos do passo 4 |
+| CORS / erro de rede no console do navegador | Você abriu o `index.html` direto pelo explorer | Feche e acesse `http://localhost/` |
+| Página em branco ao acessar `http://localhost/` | O Nginx ainda não terminou de subir ou o volume do frontend não montou | `docker compose logs nginx` e veja se há erro de permissão nos arquivos do `tests/frontend` |
 
 ---
 
