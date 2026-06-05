@@ -66,7 +66,7 @@ async def create_order(
     db: AsyncSession = Depends(get_db),
     redis: Redis = Depends(get_redis),
     current_user: UserClaims = Depends(get_current_user),
-    _: None = Depends(require_roles(["supervisor", "attendant"])),
+    _: None = Depends(require_roles(["admin", "supervisor", "attendant"])),
 ) -> OrderResponse:
     return await OrderService(db, redis, current_user).create_order(body)
 

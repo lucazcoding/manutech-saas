@@ -66,7 +66,8 @@ export function numeric(value: string | number | null | undefined): number {
 
 export function badgeClass(value: string): string {
   if (value === "urgent" || value === "cancelled" || value === "inactive") return "badge badge-danger";
-  if (value === "high" || value === "medium" || value === "in_progress") return "badge badge-warning";
+  if (value === "high") return "badge badge-warning";
+  if (value === "medium" || value === "in_progress") return "badge badge-info";
   if (value === "completed" || value === "active" || value === "open") return "badge badge-success";
   return "badge badge-muted";
 }

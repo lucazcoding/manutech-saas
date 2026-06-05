@@ -1,5 +1,4 @@
 import {
-  BarChart3,
   Bell,
   Boxes,
   ClipboardList,
@@ -51,7 +50,7 @@ const navGroups: Array<{
     label: "Gestão",
     items: [
       { key: "users", label: "Utilizadores", icon: <UsersRound size={18} />, roles: ["admin"] },
-      { key: "audit", label: "Auditoria", icon: <Fingerprint size={18} />, roles: ["admin", "supervisor"] }
+      { key: "audit", label: "Auditoria (Logs)", icon: <Fingerprint size={18} />, roles: ["admin", "supervisor"] }
     ]
   }
 ];
@@ -118,10 +117,7 @@ export function Layout({
             <Menu size={20} />
             <span>MANUTECH</span>
           </div>
-          <div className="module-title">
-            <BarChart3 size={18} />
-            <span>{titles[activeModule]}</span>
-          </div>
+          <div className="module-title">{titles[activeModule]}</div>
           <div className="user-cluster">
             <button className="bell-button" type="button" onClick={onReadNotifications} aria-label="Notificações">
               <Bell size={19} />

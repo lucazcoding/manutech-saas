@@ -1,5 +1,5 @@
 import { FormEvent, useState } from "react";
-import { Loader2, ShieldCheck, Wrench } from "lucide-react";
+import { Loader2, Wrench } from "lucide-react";
 
 interface LoginPageProps {
   onLogin: (login: string, password: string) => Promise<void>;
@@ -18,7 +18,7 @@ export function LoginPage({ onLogin }: LoginPageProps) {
     try {
       await onLogin(login, password);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Credenciais inválidas ou serviço indisponível.");
+      setError(err instanceof Error ? err.message : "Credenciais invalidas ou servico indisponivel.");
     } finally {
       setLoading(false);
     }
@@ -28,14 +28,20 @@ export function LoginPage({ onLogin }: LoginPageProps) {
     <main className="login-screen">
       <form className="login-card" onSubmit={handleSubmit}>
         <div className="login-icon">
-          <Wrench size={34} />
+          <Wrench size={64} />
         </div>
         <h1>MANUTECH</h1>
-        <p>Sistema Integrado de Gestão de Manutenção</p>
+        <p>Introduza as suas credenciais</p>
 
         <label className="field">
           <span>Utilizador</span>
-          <input value={login} onChange={(event) => setLogin(event.target.value)} autoComplete="username" required />
+          <input
+            value={login}
+            onChange={(event) => setLogin(event.target.value)}
+            autoComplete="username"
+            placeholder="admin@manutech.com"
+            required
+          />
         </label>
         <label className="field">
           <span>Palavra-passe</span>
@@ -48,7 +54,7 @@ export function LoginPage({ onLogin }: LoginPageProps) {
           />
         </label>
         <button className="button button-primary button-full" type="submit" disabled={loading}>
-          {loading ? <Loader2 className="spin" size={18} /> : <ShieldCheck size={18} />}
+          {loading ? <Loader2 className="spin" size={18} /> : null}
           Entrar no Sistema
         </button>
         {error ? <div className="form-error">{error}</div> : null}
