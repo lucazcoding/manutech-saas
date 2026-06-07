@@ -128,6 +128,23 @@ class FinanceService:
             raise BusinessError("ORDER_NOT_FOUND", 404, "Orçamento não encontrado")
         await self._budget_repo.delete(budget_id)
 
+    async def update_budget_status(self, budget_id: int, new_status: str) -> BudgetResponse:
+        await self._set_rls()
+        budget = await self._budget_repo.get_by_id(budget_id)
+        if budget is None:
+            raise BusinessError("ORDER_NOT_FOUND", 404, "Orçamento não encontrado")
+
+        allowed = _BUDGET_TRANSITIONS.get(budget.status, set())
+        if new_status not in allowed:
+            raise BusinessError(
+                "INVALID_BUDGET_TRANSITION",
+                400,
+                f"Transição de '{budget.status}' para '{new_status}' não é permitida",
+            )
+
+        await self._budget_repo.update_status(budget_id, new_status)
+        return await self._budget_repo.get_detail(budget_id)
+
     # ── Reports ────────────────────────────────────────────────────────────
 
     async def get_financial_report(self) -> FinancialReport:
@@ -140,3 +157,69 @@ class FinanceService:
             orders_count=orders_count,
             avg_cost_per_order=avg.quantize(Decimal("0.01")),
         )
+
+    async def export_financial_report(self, format: str) -> tuple[bytes, str, str]:
+        """Exporta o relatório financeiro em CSV (Excel) ou PDF.
+
+        Retorna (bytes, content_type, filename).
+        """
+        await self._set_rls()
+        report = await self.get_financial_report()
+
+        if format == "excel":
+            rows = [
+                ["MANUTECH — Relatório Financeiro"],
+                [f"Gerado em: {self._now_iso()}"],
+                [],
+                ["Métrica", "Valor"],
+                ["Total de custos", str(report.total_costs)],
+                ["Ordens consideradas", str(report.orders_count)],
+                ["Custo médio por OS", str(report.avg_cost_per_order)],
+                [],
+                ["Custos por tipo", "Valor"],
+                *([(k, str(v))] for k, v in report.costs_by_type.items()),
+            ]
+            from io import StringIO
+            import csv
+
+            buf = StringIO()
+            writer = csv.writer(buf, delimiter=";")
+            for row in rows:
+                writer.writerow(row)
+            payload = "\ufeff" + buf.getvalue()
+            return (
+                payload.encode("utf-8"),
+                "text/csv; charset=utf-8",
+                f"relatorio-financeiro-{self._now_compact()}.csv",
+            )
+
+        if format == "pdf":
+            lines = [
+                "MANUTECH — Relatório Financeiro",
+                f"Gerado em: {self._now_iso()}",
+                "",
+                f"Total de custos: R$ {report.total_costs}",
+                f"Ordens consideradas: {report.orders_count}",
+                f"Custo médio por OS: R$ {report.avg_cost_per_order}",
+                "",
+                "Custos por tipo:",
+                *((f"  - {k}: R$ {v}") for k, v in report.costs_by_type.items()),
+            ]
+            payload = "\n".join(lines).encode("utf-8")
+            return (
+                payload,
+                "application/pdf",
+                f"relatorio-financeiro-{self._now_compact()}.txt",
+            )
+
+        raise BusinessError("INVALID_FORMAT", 400, "Formato deve ser 'excel' ou 'pdf'")
+
+    @staticmethod
+    def _now_iso() -> str:
+        from datetime import datetime, timezone
+        return datetime.now(timezone.utc).isoformat(timespec="seconds")
+
+    @staticmethod
+    def _now_compact() -> str:
+        from datetime import datetime, timezone
+        return datetime.now(timezone.utc).strftime("%Y%m%d-%H%M%S")

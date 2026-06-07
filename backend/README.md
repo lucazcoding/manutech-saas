@@ -184,6 +184,8 @@ O Docker Compose está configurado para levantar toda a infraestrutura física (
    - Sobe o PostgreSQL, o Redis e o Nginx.
    - Roda as migrações do Alembic automaticamente.
    - Sobe os 6 microsserviços (`auth`, `asset`, `order`, `inventory`, `finance`, `notification`).
+   - Executa o seed do admin (`admin / admin123`) automaticamente.
+   - Executa o seed de dados demo automaticamente (4 usuários, 8 ativos, 10 materiais, 15 movimentações, 6 OS, 17 custos, 3 orçamentos).
 
 3. **Aguarde todos os containers ficarem saudáveis:**
    ```powershell
@@ -191,21 +193,7 @@ O Docker Compose está configurado para levantar toda a infraestrutura física (
    ```
    A coluna `STATUS` deve mostrar `Up (healthy)` para `db`, `redis` e os 6 microsserviços. Se algum estiver `Up` sem `(healthy)`, espere mais alguns segundos e rode de novo.
 
-4. **Popule o banco com o usuário admin padrão (seed):**
-   O `seed_admin.py` **não é copiado automaticamente** para dentro do container do Auth Service (ele está apenas na raiz do projeto). Por isso, depois que a stack estiver de pé, copie o script para dentro do container e execute-o:
-   ```powershell
-   docker cp seed_admin.py backend-auth-1:/app/seed_admin.py
-   docker exec backend-auth-1 python /app/seed_admin.py
-   ```
-   Saída esperada:
-   ```
-   Usuario 'admin' criado com sucesso.
-   Login: admin
-   Senha: admin123
-   ```
-   > O script é idempotente: se você rodá-lo de novo, ele apenas atualiza o hash da senha do admin ao invés de criar duplicado.
-
-5. **Acesse a aplicação pelo navegador:**
+4. **Acesse a aplicação pelo navegador:**
    Abra no navegador:
    ```
    http://localhost/
@@ -224,6 +212,19 @@ O Docker Compose está configurado para levantar toda a infraestrutura física (
    - **Login:** `admin`
    - **Senha:** `admin123`
 
+   O seed-data também cria 4 usuários adicionais para teste:
+
+   | Login | Role | Descrição |
+   |---|---|---|
+   | `carlos.mendes` | supervisor | Gera OS, custos, orçamentos, atribui |
+   | `joao.silva` | technician | Executa OS, registra movimentações |
+   | `marcos.pereira` | technician | Executa OS, registra movimentações |
+   | `ana.costa` | attendant | Registra OS, consulta equipamentos |
+
+   > Todos usam a senha padrão `senha123456`.
+
+   Para recriar os dados demo: `docker compose down -v && docker compose up --build -d`
+
 #### Endpoints disponíveis via API Gateway (porta 80)
 
 A partir deste momento, todos os serviços estão disponíveis de forma centralizada através do Nginx em `http://localhost/`:
@@ -239,7 +240,7 @@ A partir deste momento, todos os serviços estão disponíveis de forma centrali
 | Sintoma | Causa provável | Solução |
 |---|---|---|
 | `502 Bad Gateway` ao logar | Nginx cacheou IP errado de um container reiniciado | `docker restart backend-nginx-1` |
-| `Login ou senha incorretos` mesmo com `admin/admin123` | Você esqueceu de rodar o seed (passo 4) | Rode os dois comandos do passo 4 |
+| `Login ou senha incorretos` mesmo com `admin/admin123` | Seeds não rodaram | Verifique: `docker compose logs seed-admin seed-data` |
 | CORS / erro de rede no console do navegador | Você abriu o `index.html` direto pelo explorer | Feche e acesse `http://localhost/` |
 | Página em branco ao acessar `http://localhost/` | O Nginx ainda não terminou de subir ou o volume do frontend não montou | `docker compose logs nginx` e veja se há erro de permissão nos arquivos do `tests/frontend` |
 

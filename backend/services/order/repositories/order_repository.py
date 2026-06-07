@@ -282,6 +282,12 @@ class OrderRepository:
         )
         return result.scalar_one_or_none()
 
+    async def list_users_by_roles(self, roles: list[str]) -> list[OrderUser]:
+        result = await self._db.execute(
+            select(OrderUser).where(OrderUser.role.in_(roles))
+        )
+        return list(result.scalars().all())
+
     async def get_asset_by_id(self, asset_id: int) -> OrderAsset | None:
         result = await self._db.execute(
             select(OrderAsset).where(OrderAsset.id == asset_id)

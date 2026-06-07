@@ -1,4 +1,5 @@
 from fastapi import APIRouter, Depends, Query, status
+from fastapi.responses import Response
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from shared.shared.auth.dependencies import UserClaims, get_current_user, require_roles
@@ -14,6 +15,7 @@ from ..schemas.finance import (
     CreateCostRequest,
     FinancialReport,
     UpdateBudgetRequest,
+    UpdateBudgetStatusRequest,
     UpdateCostRequest,
 )
 from ..services.finance_service import FinanceService
@@ -168,6 +170,21 @@ async def delete_budget(
     await FinanceService(db, current_user).delete_budget(budget_id)
 
 
+@budgets_router.patch(
+    "/{budget_id}/status",
+    response_model=BudgetResponse,
+    summary="Avança o status do orçamento pela state machine",
+)
+async def update_budget_status(
+    budget_id: int,
+    body: UpdateBudgetStatusRequest,
+    db: AsyncSession = Depends(get_db),
+    current_user: UserClaims = Depends(get_current_user),
+    _: None = Depends(require_roles(["admin", "supervisor"])),
+) -> BudgetResponse:
+    return await FinanceService(db, current_user).update_budget_status(budget_id, body.status)
+
+
 @reports_router.get(
     "/financial",
     response_model=FinancialReport,
@@ -179,3 +196,24 @@ async def get_financial_report(
     _: None = Depends(require_roles(["admin", "supervisor"])),
 ) -> FinancialReport:
     return await FinanceService(db, current_user).get_financial_report()
+
+
+@reports_router.get(
+    "/financial/export",
+    summary="Exporta o relatório financeiro em Excel (CSV) ou PDF (TXT)",
+    response_class=Response,
+)
+async def export_financial_report(
+    format: str = Query(default="excel", pattern="^(excel|pdf)$"),
+    db: AsyncSession = Depends(get_db),
+    current_user: UserClaims = Depends(get_current_user),
+    _: None = Depends(require_roles(["admin", "supervisor"])),
+) -> Response:
+    payload, content_type, filename = await FinanceService(
+        db, current_user
+    ).export_financial_report(format)
+    return Response(
+        content=payload,
+        media_type=content_type,
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )

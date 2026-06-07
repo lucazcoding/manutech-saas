@@ -2,6 +2,7 @@
 Redis subscriber — consome eventos publicados pelos demais serviços:
   - order.assigned
   - order.status_changed
+  - order.completion_requested
   - stock.low_alert
 """
 
@@ -17,11 +18,17 @@ from services.notification.services.websocket_manager import manager as ws_manag
 
 logger = logging.getLogger(__name__)
 
-_CHANNELS = ["order.assigned", "order.status_changed", "stock.low_alert"]
+_CHANNELS = [
+    "order.assigned",
+    "order.status_changed",
+    "order.completion_requested",
+    "stock.low_alert",
+]
 
 _TITLE_MAP = {
     "order.assigned": "Nova OS atribuída",
     "order.status_changed": "Status de OS atualizado",
+    "order.completion_requested": "Solicitação de conclusão",
     "stock.low_alert": "Alerta de estoque baixo",
 }
 
@@ -33,6 +40,11 @@ def _build_message(channel: str, payload: dict) -> str:
         return (
             f"OS #{payload.get('order_id', '?')} mudou de "
             f"'{payload.get('old_status')}' para '{payload.get('new_status')}'"
+        )
+    if channel == "order.completion_requested":
+        tech = payload.get("technician_name", "Técnico")
+        return (
+            f"{tech} solicitou a conclusão da OS #{payload.get('order_number', payload.get('order_id', '?'))}"
         )
     if channel == "stock.low_alert":
         return (

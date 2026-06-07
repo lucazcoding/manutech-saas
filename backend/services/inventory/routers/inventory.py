@@ -132,7 +132,7 @@ async def list_movements(
     db: AsyncSession = Depends(get_db),
     redis: Redis = Depends(get_redis),
     current_user: UserClaims = Depends(get_current_user),
-    _: None = Depends(require_roles(["admin", "supervisor"])),
+    _: None = Depends(require_roles(["admin", "supervisor", "technician"])),
 ) -> PaginatedResponse[MovementResponse]:
     return await InventoryService(db, redis, current_user).list_movements(filters)
 

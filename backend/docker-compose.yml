@@ -44,6 +44,37 @@ services:
         condition: service_healthy
     command: alembic upgrade head
 
+  # ─── Seed Admin (one-shot) ─────────────────────────────────────────────────
+  seed-admin:
+    build:
+      context: .
+      dockerfile: infra/seed/Dockerfile
+    environment:
+      DATABASE_URL: ${DATABASE_URL}
+    command: python seed_admin.py
+    restart: "no"
+    depends_on:
+      db:
+        condition: service_healthy
+      migrations:
+        condition: service_completed_successfully
+
+  # ─── Seed Data (one-shot) ──────────────────────────────────────────────────
+  seed-data:
+    build:
+      context: .
+      dockerfile: infra/seed/Dockerfile
+    env_file: .env
+    command: python seed_data.py
+    restart: "no"
+    depends_on:
+      db:
+        condition: service_healthy
+      seed-admin:
+        condition: service_completed_successfully
+      auth:
+        condition: service_healthy
+
   # ─── Auth Service ──────────────────────────────────────────────────────────
   auth:
     build:

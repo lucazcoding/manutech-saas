@@ -66,7 +66,7 @@ async def create_order(
     db: AsyncSession = Depends(get_db),
     redis: Redis = Depends(get_redis),
     current_user: UserClaims = Depends(get_current_user),
-    _: None = Depends(require_roles(["supervisor", "attendant"])),
+    _: None = Depends(require_roles(["admin", "supervisor", "attendant"])),
 ) -> OrderResponse:
     return await OrderService(db, redis, current_user).create_order(body)
 
@@ -97,7 +97,7 @@ async def update_order(
     db: AsyncSession = Depends(get_db),
     redis: Redis = Depends(get_redis),
     current_user: UserClaims = Depends(get_current_user),
-    _: None = Depends(require_roles(["supervisor"])),
+    _: None = Depends(require_roles(["admin", "supervisor"])),
 ) -> OrderResponse:
     return await OrderService(db, redis, current_user).update_order(order_id, body)
 
@@ -128,7 +128,7 @@ async def update_order_status(
     db: AsyncSession = Depends(get_db),
     redis: Redis = Depends(get_redis),
     current_user: UserClaims = Depends(get_current_user),
-    _: None = Depends(require_roles(["supervisor", "technician"])),
+    _: None = Depends(require_roles(["admin", "supervisor", "technician"])),
 ) -> OrderResponse:
     return await OrderService(db, redis, current_user).update_status(order_id, body)
 
@@ -144,9 +144,24 @@ async def assign_technician(
     db: AsyncSession = Depends(get_db),
     redis: Redis = Depends(get_redis),
     current_user: UserClaims = Depends(get_current_user),
-    _: None = Depends(require_roles(["supervisor"])),
+    _: None = Depends(require_roles(["admin", "supervisor"])),
 ) -> OrderResponse:
     return await OrderService(db, redis, current_user).assign_technician(order_id, body)
+
+
+@router.post(
+    "/{order_id}/request-completion",
+    response_model=OrderResponse,
+    summary="Técnico solicita a conclusão de uma OS em andamento (notifica supervisor/admin)",
+)
+async def request_order_completion(
+    order_id: int,
+    db: AsyncSession = Depends(get_db),
+    redis: Redis = Depends(get_redis),
+    current_user: UserClaims = Depends(get_current_user),
+    _: None = Depends(require_roles(["admin", "supervisor", "technician"])),
+) -> OrderResponse:
+    return await OrderService(db, redis, current_user).request_completion(order_id)
 
 
 @router.get(

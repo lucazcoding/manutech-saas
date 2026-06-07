@@ -1359,7 +1359,7 @@ Para **saída** de material (consumo em OS):
 
 **Rota:** `GET /movements`  
 **Autenticação:** `Bearer {{access_token}}`  
-**Roles permitidos:** `admin`, `supervisor`
+**Roles permitidos:** `admin`, `supervisor`, `technician`
 
 **Query Params opcionais:**
 
@@ -1377,7 +1377,7 @@ Para **saída** de material (consumo em OS):
 |---|---------|-------------------|
 | 1 | Listar todas as movimentações | `200` com lista paginada |
 | 2 | Filtrar saídas de um material | `200` filtrado |
-| 3 | Technician tenta listar | `403` |
+| 3 | Technician lista movimentações | `200` — pode ver movimentações |
 
 ---
 
@@ -2099,7 +2099,7 @@ Use esta tabela como referência rápida ao testar controle de acesso.
 | PUT /materials/{id} | ✅ | ✅ | ❌ | ❌ |
 | PATCH /materials/{id}/status | ✅ | ❌ | ❌ | ❌ |
 | POST /movements | ✅ | ✅ | ✅ | ❌ |
-| GET /movements | ✅ | ✅ | ❌ | ❌ |
+| GET /movements | ✅ | ✅ | ✅ | ❌ |
 | GET /stock/report | ✅ | ✅ | ❌ | ❌ |
 | GET /costs | ✅ | ✅ | ❌ | ❌ |
 | POST /costs | ❌ | ✅ | ✅ | ❌ |

@@ -9,6 +9,7 @@ import asyncio
 from unittest.mock import patch
 
 import pytest
+from sqlalchemy import text
 from starlette.testclient import TestClient
 from starlette.websockets import WebSocketDisconnect
 
@@ -57,12 +58,13 @@ async def test_list_notifications_attendant_200(notification_client_attendant):
     assert response.status_code == 200
 
 
-async def test_list_notifications_empty_when_none(notification_client_supervisor):
+async def test_list_notifications_empty_when_none(notification_client_supervisor, db_session):
     """Lista de notificações vazia quando não há notificações para o usuário."""
+    await db_session.execute(text("DELETE FROM notifications WHERE user_id = 2"))
+    await db_session.commit()
     response = await notification_client_supervisor.get("/api/v1/notifications")
     assert response.status_code == 200
     data = response.json()
-    # Supervisor (user_id=2) não tem notificações seedadas
     assert data["total"] == 0
     assert data["items"] == []
 

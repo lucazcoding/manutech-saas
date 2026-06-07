@@ -24,9 +24,12 @@ class TestCreateOrder:
         r = await order_client_attendant.post("/api/v1/orders", json=_ORDER_PAYLOAD)
         assert r.status_code == 201
 
-    async def test_admin_cannot_create_order_403(self, order_client_admin):
+    async def test_admin_can_create_order_201(self, order_client_admin):
         r = await order_client_admin.post("/api/v1/orders", json=_ORDER_PAYLOAD)
-        assert r.status_code == 403
+        assert r.status_code == 201
+        body = r.json()
+        assert body["client_name"] == "Empresa Teste"
+        assert body["status"] == "open"
 
     async def test_technician_cannot_create_order_403(self, order_client_technician):
         r = await order_client_technician.post("/api/v1/orders", json=_ORDER_PAYLOAD)
@@ -104,14 +107,17 @@ class TestAssignTechnician:
         assert body["assigned_technician"] is not None
         assert body["assigned_technician"]["id"] == seeded_technician_user["id"]
 
-    async def test_admin_cannot_assign_technician_403(
+    async def test_admin_can_assign_technician_200(
         self, order_client_admin, seeded_order, seeded_technician_user
     ):
         r = await order_client_admin.patch(
             f"/api/v1/orders/{seeded_order['id']}/assign",
             json={"technician_id": seeded_technician_user["id"]},
         )
-        assert r.status_code == 403
+        assert r.status_code == 200
+        body = r.json()
+        assert body["assigned_technician"] is not None
+        assert body["assigned_technician"]["id"] == seeded_technician_user["id"]
 
 
 class TestStatusTransitions:

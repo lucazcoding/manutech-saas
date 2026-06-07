@@ -230,3 +230,12 @@ class BudgetRepository:
     async def delete(self, budget_id: int) -> None:
         await self._db.execute(delete(Budget).where(Budget.id == budget_id))
         await self._db.flush()
+
+    async def update_status(self, budget_id: int, new_status: str) -> Budget | None:
+        await self._db.execute(
+            update(Budget)
+            .where(Budget.id == budget_id)
+            .values(status=new_status, updated_at=func.now())
+        )
+        await self._db.flush()
+        return await self.get_by_id(budget_id)

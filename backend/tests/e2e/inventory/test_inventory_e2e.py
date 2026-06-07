@@ -161,9 +161,10 @@ class TestStockMovements:
         assert r.status_code == 200
         assert "items" in r.json()
 
-    async def test_technician_cannot_list_movements_403(self, inv_client_technician):
+    async def test_technician_can_list_movements_200(self, inv_client_technician, seeded_material, seeded_order_for_movement):
         r = await inv_client_technician.get("/api/v1/movements")
-        assert r.status_code == 403
+        assert r.status_code == 200
+        assert "items" in r.json()
 
 
 class TestStockReport:

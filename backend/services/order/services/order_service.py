@@ -110,6 +110,34 @@ class OrderService:
         if order is None:
             raise BusinessError("ORDER_NOT_FOUND", 404, "Ordem de serviço não encontrada")
 
+        role = self._current_user.role
+        if role == "technician":
+            assignment = await self._repo.get_active_assignment(order_id)
+            if assignment is None or assignment.technician_id != self._current_user.id:
+                raise BusinessError(
+                    "NOT_ASSIGNED_TECHNICIAN",
+                    403,
+                    "Apenas o técnico atribuído pode alterar esta OS",
+                )
+            if data.status == "completed":
+                raise BusinessError(
+                    "COMPLETION_REQUIRES_SUPERVISOR",
+                    403,
+                    "Apenas supervisor ou admin pode concluir uma OS. Use 'Solicitar conclusão' para notificar.",
+                )
+            if data.status == "cancelled":
+                raise BusinessError(
+                    "CANCELLATION_REQUIRES_SUPERVISOR",
+                    403,
+                    "Apenas supervisor ou admin pode cancelar uma OS",
+                )
+            if data.status != "in_progress":
+                raise BusinessError(
+                    "TECHNICIAN_TRANSITION_NOT_ALLOWED",
+                    403,
+                    "Técnicos só podem iniciar uma OS (mover para 'em andamento')",
+                )
+
         validate_status_transition(order.status, data.status)
 
         if data.status == "cancelled" and not data.reason:
@@ -141,6 +169,49 @@ class OrderService:
                 },
             },
         )
+
+        return await self._repo.get_detail(order_id)
+
+    async def request_completion(self, order_id: int) -> OrderResponse:
+        await self._set_rls()
+        order = await self._repo.get_by_id(order_id)
+        if order is None:
+            raise BusinessError("ORDER_NOT_FOUND", 404, "Ordem de serviço não encontrada")
+
+        assignment = await self._repo.get_active_assignment(order_id)
+        if assignment is None or assignment.technician_id != self._current_user.id:
+            raise BusinessError(
+                "NOT_ASSIGNED_TECHNICIAN",
+                403,
+                "Apenas o técnico atribuído pode solicitar a conclusão desta OS",
+            )
+
+        if order.status != "in_progress":
+            raise BusinessError(
+                "INVALID_STATUS_FOR_REQUEST",
+                400,
+                "Só é possível solicitar a conclusão de uma OS em andamento",
+            )
+
+        reviewers = await self._repo.list_users_by_roles(["supervisor", "admin"])
+        if not reviewers:
+            return await self._repo.get_detail(order_id)
+
+        for reviewer in reviewers:
+            await publish_event(
+                self._redis,
+                "order.completion_requested",
+                {
+                    "event": "order.completion_requested",
+                    "user_id": reviewer.id,
+                    "payload": {
+                        "order_id": order_id,
+                        "order_number": order.order_number,
+                        "technician_id": self._current_user.id,
+                        "technician_name": self._current_user.name,
+                    },
+                },
+            )
 
         return await self._repo.get_detail(order_id)
 
