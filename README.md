@@ -324,7 +324,7 @@ manutech-saas/
 | Funcao | Admin | Supervisor | Tecnico | Atendente |
 |--------|:-----:|:----------:|:-------:|:---------:|
 | **Dashboard** | Sim | Sim | Sim | Sim |
-| **Criar OS** | Nao | Sim | Nao | Sim |
+| **Criar OS** | Sim | Sim | Nao | Sim |
 | **Editar OS** | Sim | Sim | Nao | Nao |
 | **Atribuir tecnico** | Sim | Sim | Nao | Nao |
 | **Iniciar OS** | Sim | Sim | Sim (proprias) | Nao |
